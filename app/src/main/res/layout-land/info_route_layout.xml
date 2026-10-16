@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/directions_route_layout"
+        android:layout_width="230dp"
+        android:maxWidth="230dp"
+        android:layout_height="match_parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:background="@color/md_grey_900"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true">
+
+    <androidx.appcompat.widget.AppCompatImageButton
+        android:id="@+id/cancelRouteBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/baseline_arrow_back_24"
+        android:backgroundTint="@color/white"
+        android:layout_margin="15dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/directions_route_start"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:layout_marginRight="24dp"
+            android:layout_marginLeft="24dp"
+            android:background="@color/cardview_dark_background"
+            android:orientation="horizontal"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/cancelRouteBtn"
+            >
+
+            <ImageView
+                android:id="@+id/directions_start_icon"
+                android:layout_width="28dp"
+                android:layout_height="30dp"
+                android:background="@drawable/ic_navigation"
+                android:backgroundTint="@color/maplibre_blue"
+                android:layout_margin="8dp"/>
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/directions_start"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="28dp"
+                android:inputType="textPostalAddress"
+                android:layout_weight="1"
+                android:textColor="@color/white"
+                android:textColorHint="@color/md_grey_700"
+                android:hint="@string/directions_start"/>
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/directions_route_end"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:layout_marginRight="24dp"
+            android:layout_marginLeft="24dp"
+            android:background="@color/cardview_dark_background"
+            android:orientation="horizontal"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/directions_route_start">
+
+            <ImageView
+                android:id="@+id/directions_end_icon"
+                android:layout_width="24dp"
+                android:layout_height="27dp"
+                android:background="@drawable/map_marker_dark"
+                android:layout_marginLeft="10dp"
+                android:layout_marginTop="7dp"/>
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/directions_end"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="28dp"
+                android:layout_marginLeft="10dp"
+                android:inputType="textPostalAddress"
+                android:layout_weight="1"
+                android:textColor="@color/white"
+                android:textColorHint="@color/md_grey_700"
+                android:hint="@string/directions_end"/>
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/directions_route_info_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/directions_route_end"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/directions_route_distance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAlignment="center"
+                android:textSize="24dp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/directions_route_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16dp"
+                android:textColor="@color/white"
+                app:layout_constraintTop_toBottomOf="@id/directions_route_distance"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                />
+
+            <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+                android:id="@+id/startNavigationButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="15dp"
+                android:backgroundTint="@color/dark_blue_UI_primary"
+                android:text="@string/start_navigation"
+                android:textColor="@color/white"
+                android:visibility="invisible"
+                app:icon="@drawable/ic_navigation"
+                app:iconTint="@color/white"
+                app:layout_constraintTop_toBottomOf="@id/directions_route_duration"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/routeTransportationMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/md_grey_900"
+        android:layout_margin="15dp"
+        android:visibility="invisible"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:cardElevation="18dp"
+        app:cardCornerRadius="8dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/trasportationCarMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/navigation_transportation_mode_car"
+                android:backgroundTint="@color/md_grey_700"
+                app:layout_constraintRight_toLeftOf="@id/trasportationWalkingMode"
+                app:layout_constraintLeft_toLeftOf="parent"
+                tools:ignore="MissingConstraints" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/trasportationWalkingMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/md_grey_700"
+                android:background="@drawable/navigation_transportation_mode_walking"
+                app:layout_constraintLeft_toRightOf="@id/trasportationCarMode"
+                app:layout_constraintRight_toRightOf="parent"
+                tools:ignore="MissingConstraints" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/startSimulationRoute"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:backgroundTint="@android:color/holo_green_dark"
+        android:src="@android:drawable/ic_media_play"
+        android:visibility="invisible"
+        app:tint="@color/white"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

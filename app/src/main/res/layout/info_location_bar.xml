@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="190dp"
+    android:maxHeight="190dp"
+    android:background="@color/md_grey_900"
+    android:clickable="true"
+    android:focusable="true"
+    android:focusableInTouchMode="true">
+
+    <TextView
+        android:id="@+id/text_location_name_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="20dp"
+        android:textColor="@android:color/white"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
+    <TextView
+        android:id="@+id/text_location_address_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="14dp"
+        android:textColor="@android:color/white"
+        app:layout_constraintTop_toBottomOf="@id/text_location_name_bar"
+        />
+
+    <TextView
+        android:id="@+id/text_location_coordinates_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="25dp"
+        android:textColor="@android:color/white"
+        app:layout_constraintTop_toBottomOf="@id/text_location_address_bar"
+        />
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/getDirectionsButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/get_directions_button"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/dark_blue_UI_primary"
+        android:layout_margin="4dp"
+        android:layout_marginTop="25dp"
+        app:icon="@drawable/direction_notification_right"
+        app:iconTint="@color/white"
+        app:layout_constraintTop_toBottomOf="@id/text_location_coordinates_bar"
+        app:layout_constraintLeft_toRightOf="@id/getPlaceInfoButton"
+        app:layout_constraintRight_toLeftOf="parent"
+        />
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/getPlaceInfoButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/get_place_info_button"
+        android:textColor="@color/white"
+        android:backgroundTint="#3F8740"
+        android:layout_margin="4dp"
+        android:layout_marginTop="25dp"
+        app:icon="@drawable/maplibre_info_icon_default"
+        app:iconTint="@color/white"
+        app:layout_constraintTop_toBottomOf="@id/text_location_coordinates_bar"
+        app:layout_constraintRight_toLeftOf="@id/getDirectionsButton"
+        app:layout_constraintLeft_toRightOf="parent"
+        />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

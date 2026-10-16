@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Powerful GPS Navigation</string>
+    <string name="app_permission_dialog_title">Izin lokasi diperlukan</string>
+    <string name="app_permission_dialog_message">Aplikasi ini membutuhkan akses lokasi untuk berfungsi dengan baik, Silakan aktifkan izin di pengaturan aplikasi.</string>
+    <string name="open_settings">Buka pengaturan</string>
+    <string name="cancel">Batal</string>
+    <string name="exit_navigation_app_title">Keluar dari Powerful GPS Navigation</string>
+    <string name="exit_navigation_app_dialog">Apakah kamu yakin?</string>
+    <string name="exit_navigation_app_yes">Ya</string>
+    <string name="exit_navigation_app_no">Tidak</string>
+    <string name="search_navigate_to">Cari/Bernavigasi ke...</string>
+    <string name="search_navigate_button">Cari</string>
+    <string name="get_directions_button">Dapatkan Arah</string>
+    <string name="get_place_info_button">Informasi Tempat</string>
+    <string name="directions_start">awal</string>
+    <string name="directions_end">tujuan</string>
+    <string name="route_kilometers"> km</string>
+    <string name="route_meters"> m</string>
+    <string name="route_durations_days"> h</string>
+    <string name="route_durations_hours"> j</string>
+    <string name="route_durations_minutes"> min</string>
+    <string name="directions_durations_days"> h</string>
+    <string name="directions_durations_hours"> j</string>
+    <string name="directions_durations_minutes"> mnt</string>
+    <string name="start_navigation">mulai bernavigasi</string>
+    <string name="route_time_remaining">Waktu</string>
+    <string name="route_distance_remaining">Jarak</string>
+    <string name="route_eta">PWT</string>
+    <string name="route_recenter_navigation">Lanjut</string>
+    <string name="route_stop_navigation">Stop</string>
+    <string name="offline_maps_manager">Kelola Peta</string>
+    <string name="navigate_to">Bernavigasi Ke</string>
+    <string name="journeybook">Buku Perjalanan</string>
+    <string name="nav_vehicle_profile">Profil Kendaraan</string>
+    <string name="settings">Setelan</string>
+    <string name="nav_emergency_sos">Bantuan Darurat</string>
+    <string name="manage_maps">Kelola Peta</string>
+</resources>
