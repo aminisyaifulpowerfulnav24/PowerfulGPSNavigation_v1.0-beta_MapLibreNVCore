@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -136,7 +137,7 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
     private var lastPosition: Int = 0
 
     internal lateinit var mapView: MapView
-    private lateinit var mapboxMap: MapboxMap
+    internal lateinit var mapboxMap: MapboxMap
     private lateinit var mapUiSettings: UiSettings
     private var fineLocationGranted: Boolean = false
     private var coarseLocationGranted: Boolean = false
@@ -152,10 +153,18 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
     private var navigationLocationEngine: LocationEngine? = null
     private lateinit var navigationCamera: CameraPosition
     private lateinit var locationOptions: LocationComponentOptions
+
+    private var density: Float = 0.0f
+
     private var pLeft: Int = 0
     private var pTop: Int = 0
     private var pRight: Int = 0
     private var pBottom: Int = 0
+
+    private var layoutLeft: Int = 0
+    private var layoutRight: Int = 0
+    private var layoutTop: Int = 0
+    private var layoutBottom: Int = 0
 
     private lateinit var locationRequest: LocationEngineRequest
 
@@ -190,14 +199,14 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
     internal lateinit var mapButtonUI: ConstraintLayout
     private lateinit var recenterPosition: FloatingActionButton
 
-    private lateinit var searchMapButton: FloatingActionButton
+    internal lateinit var searchMapButton: FloatingActionButton
     internal lateinit var searchLocLayout: View
     internal lateinit var searchLocation: AppCompatEditText
-    private lateinit var searchLocButton: Button
-    private lateinit var backToMapButton: ImageButton
-    private lateinit var adapter: PlaceAdapter
-    private lateinit var listView: ListView
-    private var savedPlaceList: ArrayList<GeocodeResponse>? = null
+    internal lateinit var searchLocButton: Button
+    internal lateinit var backToMapButton: ImageButton
+    internal lateinit var adapter: PlaceAdapter
+    internal lateinit var listView: ListView
+    internal var savedPlaceList: ArrayList<GeocodeResponse>? = null
 
 
     private var searchLayoutUIStatus: Boolean = false
@@ -207,24 +216,24 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
     private lateinit var textLocationAddress: TextView
     private lateinit var textLocationCoordinates: TextView
     private lateinit var bounds: MutableList<LatLng>
-    private lateinit var backToSearchMapBtn: FloatingActionButton
+    internal lateinit var backToSearchMapBtn: FloatingActionButton
     private var restoredList: ArrayList<GeocodeResponse>? = null
 
-    private lateinit var selectedLocation: GeocodeResponse
-    private var name: String = ""
-    private var displayName: String = ""
-    private var lat: Double = 0.0
-    private var lon: Double = 0.0
+    internal lateinit var selectedLocation: GeocodeResponse
+    internal var name: String = ""
+    internal var displayName: String = ""
+    internal var lat: Double = 0.0
+    internal var lon: Double = 0.0
     private lateinit var markerOptions: MarkerOptions
     private lateinit var markerIcon: com.mapbox.mapboxsdk.annotations.Icon
     private lateinit var markerIconFactory: IconFactory
     private lateinit var marker: Marker
-    private lateinit var getDirectionsButton: ExtendedFloatingActionButton
+    internal lateinit var getDirectionsButton: ExtendedFloatingActionButton
     private lateinit var getPlaceInfoButton: ExtendedFloatingActionButton
 
-    private var isLocationSelected: Boolean = false
+    internal var isLocationSelected: Boolean = false
 
-    private var isDirectionsRoute: Boolean = false
+    internal var isDirectionsRoute: Boolean = false
     private var isRouteSummary: Boolean = false
 
     companion object {
@@ -252,28 +261,28 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
     private lateinit var routeSummaryLayout: View
     private lateinit var directionsStart: AppCompatEditText
     private lateinit var directionsEnd: AppCompatEditText
-    private lateinit var cancelRouteBtn: AppCompatImageButton
+    internal lateinit var cancelRouteBtn: AppCompatImageButton
     private lateinit var routeTransportationMode: CardView
     private lateinit var routeTransportationCar: AppCompatImageButton
     private lateinit var routeTransportationPedestrian: AppCompatImageButton
-    private lateinit var routeSimulationBtn: FloatingActionButton
-    private lateinit var startNavigationBtn: ExtendedFloatingActionButton
+    internal lateinit var routeSimulationBtn: FloatingActionButton
+    internal lateinit var startNavigationBtn: ExtendedFloatingActionButton
 
     private lateinit var routeOptions: RouteOptions
 
-    private lateinit var originLocation: Location
-    private lateinit var origin: Point
+    internal lateinit var originLocation: Location
+    internal lateinit var origin: Point
     private lateinit var waypoint: Point
-    private lateinit var destination: Point
+    internal lateinit var destination: Point
 
-    private var originLat: Double = 0.0
-    private var originLng: Double = 0.0
+    internal var originLat: Double = 0.0
+    internal var originLng: Double = 0.0
 
     private var waypointLat: Double = 0.0
     private var waypointLng: Double = 0.0
 
-    private var destinationLat: Double = 0.0
-    private var destinationLng: Double = 0.0
+    internal var destinationLat: Double = 0.0
+    internal var destinationLng: Double = 0.0
 
     private lateinit var routeDistance: AppCompatTextView
     private lateinit var routeDuration: AppCompatTextView
@@ -294,11 +303,11 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
     private var routeRestoredList: MutableList<DirectionsRoute> = mutableListOf()
     private lateinit var savedRouteListJson: String
 
-    private var routeJson: String? = null
+    private var routesJson: String? = null
 
     private var routeNavigationJson: String? = null
 
-    private var isNavigating: Boolean = false
+    internal var isNavigating: Boolean = false
 
     private var osrmBaseUrl = ""
     private var user = ""
@@ -314,16 +323,16 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
     private lateinit var directionsTime: TextView
     private lateinit var directionsDistance: TextView
     private lateinit var directionsEta: TextView
-    private lateinit var stopNavigationButton: FloatingActionButton
-    private lateinit var routeOverview: ExtendedFloatingActionButton
-    private lateinit var routeNavigationCurrentSpeed: AppCompatTextView
-    private lateinit var btnRecenterPosition: ExtendedFloatingActionButton
-    private lateinit var gentleNavigationSpeaker: GentleNavigationSpeaker
-    private lateinit var btnMuteUnmute: ExtendedFloatingActionButton
+    internal lateinit var stopNavigationButton: FloatingActionButton
+    internal lateinit var routeOverview: ExtendedFloatingActionButton
+    internal lateinit var routeNavigationCurrentSpeed: AppCompatTextView
+    internal lateinit var btnRecenterPosition: ExtendedFloatingActionButton
+    internal lateinit var gentleNavigationSpeaker: GentleNavigationSpeaker
+    internal lateinit var btnMuteUnmute: ExtendedFloatingActionButton
 
     private var realTimeLocationEnabled = false
     private var isSimulationMode = false
-    private var isNavigationTurnByTurnMode = false
+    internal var isNavigationTurnByTurnMode = false
     private var isNavigationTurnByTurnEnabled = false
     private var demoLocationEngine: ReplayRouteLocationEngine = ReplayRouteLocationEngine()
 
@@ -429,6 +438,7 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                         locationComponent?.isLocationComponentEnabled = true
                         locationComponent?.locationEngine = null
                         locationComponent?.renderMode = RenderMode.GPS
+                        locationComponent?.setMaxAnimationFps(60)
                     }
 
                     if (isDataVisible) {
@@ -439,7 +449,21 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                                     locationComponent?.zoomWhileTracking(18.0, 1000)
                                     locationComponent?.tiltWhileTracking(55.0)
 
-                                    mapboxMap.setPadding(pLeft, pTop, pRight, pBottom)
+                                    if (isNavigationTurnByTurnMode) {
+                                        mapboxMap.setPadding(
+                                            layoutLeft,
+                                            layoutTop,
+                                            layoutRight,
+                                            layoutBottom
+                                        )
+                                    } else if (!isNavigationTurnByTurnMode) {
+                                        mapboxMap.setPadding(
+                                            pLeft,
+                                            (pTop + 120).toInt(),
+                                            pRight,
+                                            pBottom
+                                        )
+                                    }
 
                                     mapUiSettings.setCompassEnabled(false)
                                 }
@@ -536,10 +560,10 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                     vehicle = savedInstanceState.getString(KEY_ROUTE_TRANSPORTATION) ?: ""
                     url = savedInstanceState.getString(KEY_ROUTE_URL) ?: ""
 
-                    if (routeRestoredList.isNullOrEmpty()) {
+                    currentRouteIndex = savedInstanceState.getInt("KEY_CURRENT_ROUTE_INDEX", 0)
+
+                    if (isDirectionsRoute) {
                         routingResponse()
-                    } else if (!routeRestoredList.isNullOrEmpty()) {
-                        loadNavigationRoutes()
                     }
 
                     if (savedRouteListJson.isNotEmpty()) {
@@ -557,13 +581,6 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
 
                                 // Masukkan kembali ke variabel global rute Anda
                                 routeList = routeRestoredList
-
-                                if (routeList.isNotEmpty()) {
-                                    navigationMapRoute?.addRoutes(routeList)
-                                    navigationMapRoute?.setOnRouteSelectionChangeListener {
-                                        updateRouteUi(it)
-                                    }
-                                }
                             }
 
                             Log.d("ROTATION_CHECK", "Semua rute alternatif berhasil dipulihkan.")
@@ -580,21 +597,35 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                 isNavigating = savedInstanceState.getBoolean("KEY_NAV_STARTED", false)
                 isNavigationTurnByTurnMode = savedInstanceState.getBoolean("KEY_IS_TBT_MODE", false)
                 realTimeLocationEnabled = savedInstanceState.getBoolean("KEY_REALTIME_LOC", false)
-                currentRouteIndex = savedInstanceState.getInt("KEY_CURRENT_ROUTE_INDEX", 0)
-
-                navigationlocation?.longitude = savedInstanceState.getDouble("NAVIGATION_LOC_LNG")
-                navigationlocation?.latitude = savedInstanceState.getDouble("NAVIGATION_LOC_LAT")
-                navigationlocation?.bearing = savedInstanceState.getFloat("NAVIGATION_LOC_BEARING")
+                isSimulationMode = savedInstanceState.getBoolean("KEY_SIMULATION_MODE", false)
 
                 // Restore objek route dari JSON String
                 routeNavigationJson = savedInstanceState.getString("KEY_ROUTE_JSON")
                 if (!routeNavigationJson.isNullOrEmpty()) {
                     route = DirectionsRoute.fromJson(routeNavigationJson)
-                }
+                    val routing = route
+                    routeRestoredList = mutableListOf(routing)
+                    routeList = routeRestoredList
 
-                // Jalankan kembali mode Turn-by-Turn jika sebelumnya aktif
-                if (isNavigationTurnByTurnMode) {
-                    setupObservers()
+                    navigationMapRoute?.addRoutes(routeList)
+
+                    if (isNavigationTurnByTurnMode) {
+
+                        if (!isSimulationMode) {
+                            startNavigationRoute()
+
+                            navigation.startNavigation(route)
+                        } else {
+                            startSimulationRoute()
+
+                            demoLocationEngine.assign(route)
+                            navigation.startNavigation(route)
+                        }
+
+                        navigationlocation?.longitude = savedInstanceState.getDouble("NAVIGATION_LOC_LNG")
+                        navigationlocation?.latitude = savedInstanceState.getDouble("NAVIGATION_LOC_LAT")
+                        navigationlocation?.bearing = savedInstanceState.getFloat("NAVIGATION_LOC_BEARING")
+                    }
                 }
             }
 
@@ -618,6 +649,8 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
             addProgressChangeListener(this@MapActivity)
         }
 
+        mapView.setMaximumFps(60)
+
         recenterPosition = rootView.findViewById(R.id.recenterNavigation)
 
         speedNavigationInKph = rootView.findViewById(R.id.navigationSpeedKph)
@@ -625,6 +658,36 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
         searchMapButton = rootView.findViewById(R.id.searchplace_maps)
 
         mapButtonUI = rootView.findViewById(R.id.mapUIButton)
+
+        val orientation = resources.configuration.orientation
+        density = resources.displayMetrics.density
+
+        when (orientation) {
+            Configuration.ORIENTATION_LANDSCAPE -> {
+                if (isDataVisible) {
+                    if (isNavigationTurnByTurnMode) {
+                        layoutLeft =
+                            (directionsSummaryCardView.width / density + pLeft + 260 / density).toInt()
+                        layoutBottom = pBottom
+                        layoutRight = pRight
+                        layoutTop = (navigationTurnByTurnCardView.height / density + pTop).toInt()
+                    }
+                }
+            }
+            Configuration.ORIENTATION_PORTRAIT -> {
+                if (isDataVisible) {
+                    if (isNavigationTurnByTurnMode) {
+                        layoutLeft = pLeft
+                        layoutBottom = pBottom
+                        layoutRight = pRight
+                        layoutTop = (pTop + 120 / density).toInt()
+                    }
+                }
+            }
+            else -> {
+
+            }
+        }
 
         // Mengambil nilai pixel dari dimens yang otomatis menyesuaikan orientasi
         pLeft = resources.getDimensionPixelSize(R.dimen.mapbox_padding_left)
@@ -683,172 +746,11 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
             }
         }
 
-        searchMapButton.setOnClickListener {
-            GeocodeSearchUI()
-        }
+        GeocodeSearchUI()
 
-        backToMapButton.setOnClickListener {
-            backToMap.handleOnBackPressed()
-        }
+        RouteDirectionsSummary()
 
-        searchLocButton.setOnClickListener {
-            val searchText = searchLocation.text.toString()
-            val urlString = "https://nominatim.openstreetmap.org/search?q=$searchText&format=jsonv2"
-
-            GlobalScope.launch(Dispatchers.IO) {
-                try {
-                    // Fetch JSON from Nominatim URL
-                    val url = URL(urlString)
-                    val connection = url.openConnection() as java.net.HttpURLConnection
-
-                    // Change "MyAndroidMapApp" to your own project or app name
-                    connection.setRequestProperty(
-                        "User-Agent",
-                        "PowerfulGPSNavigationBETAAppForAndroid/1.0"
-                    )
-
-                    // 3. Read response string from the connection stream
-                    val json = connection.inputStream.bufferedReader().use { it.readText() }
-
-                    // Parse JSON using Gson
-                    val listType = object : TypeToken<ArrayList<GeocodeResponse>>() {}.type
-                    val placeList: ArrayList<GeocodeResponse> = Gson().fromJson(json, listType)
-
-                    savedPlaceList = placeList
-
-                    // Update UI on the Main Thread
-                    withContext(Dispatchers.Main) {
-                        adapter = PlaceAdapter(this@MapActivity, placeList)
-                        listView.adapter = adapter
-                    }
-
-                    listView.visibility = View.VISIBLE
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(this@MapActivity, "Error fetching data", Toast.LENGTH_SHORT)
-                            .show()
-                    }
-                }
-            }
-        }
-
-        searchLocation.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                if (s.toString().isEmpty()) {
-                    // Solusi aman ganti adapter kosong untuk membersihkan ListView tanpa ClassCastException
-                    savedPlaceList = null
-                    adapter = PlaceAdapter(this@MapActivity, arrayListOf())
-                    listView.adapter = adapter
-                    listView.visibility = View.INVISIBLE
-                }
-            }
-
-            override fun beforeTextChanged(
-                s: CharSequence?,
-                start: Int,
-                count: Int,
-                after: Int
-            ) {
-
-            }
-
-            override fun onTextChanged(
-                s: CharSequence?,
-                start: Int,
-                before: Int,
-                count: Int
-            ) {
-
-            }
-
-        })
-
-        listView.setOnItemClickListener { parent, view, position, id ->
-            saveStatus(false)
-            removeCenteringPosition()
-            onMovingMap()
-
-            selectedLocation = adapter.getItem(position)!!
-            name = selectedLocation.name
-            displayName = selectedLocation.display_name
-            lat = selectedLocation.lat.toDouble()
-            lon = selectedLocation.lon.toDouble()
-
-            isLocationSelected = true
-
-            onLocationResultSelected()
-
-            val inputMethodManager =
-                getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            inputMethodManager.hideSoftInputFromWindow(searchLocation.windowToken, 0)
-        }
-
-        backToSearchMapBtn.setOnClickListener {
-            backToSearchMap.handleOnBackPressed()
-        }
-
-        getDirectionsButton.setOnClickListener {
-            originLocation = mapboxMap.locationComponent.lastKnownLocation!!
-
-            originLat = originLocation.latitude
-            originLng = originLocation.longitude
-
-            destinationLat = lat
-            destinationLng = lon
-
-            origin = Point.fromLngLat(originLocation.longitude, originLocation.latitude)
-            destination = Point.fromLngLat(destinationLng, destinationLat)
-
-            routingResponse()
-
-            isDirectionsRoute = true
-        }
-
-        cancelRouteBtn.setOnClickListener {
-            backToLocationOnMapInfo.handleOnBackPressed()
-        }
-
-        routeSimulationBtn.setOnClickListener {
-            isNavigationTurnByTurnMode = true
-            isNavigating = true
-            startDemoNavigationTurnByTurn()
-        }
-
-        startNavigationBtn.setOnClickListener {
-            isNavigationTurnByTurnMode = true
-            isNavigating = true
-            toggleLocationSource(false)
-            startNavigationTurnByTurn()
-        }
-
-        stopNavigationButton.setOnClickListener {
-            backToStartMapView.handleOnBackPressed()
-        }
-
-        btnRecenterPosition.setOnClickListener {
-            if (isNavigationTurnByTurnMode) {
-                saveStatus(true)
-                recenterCarLoc()
-
-                btnRecenterPosition.visibility = View.INVISIBLE
-                routeOverview.visibility = View.VISIBLE
-                routeNavigationCurrentSpeed.visibility = View.VISIBLE
-            }
-        }
-
-        gentleNavigationSpeaker = GentleNavigationSpeaker(this)
-
-        // Set status awal tombol dari memori SharedPreferences
-        if (gentleNavigationSpeaker.isMuted()) {
-            btnMuteUnmute.setIconResource(com.mapbox.services.android.navigation.ui.v5.R.drawable.ic_sound_off)
-        } else {
-            btnMuteUnmute.setIconResource(com.mapbox.services.android.navigation.ui.v5.R.drawable.ic_sound_on)
-        }
-
-        btnMuteUnmute.setOnClickListener {
-            val nowMuted = gentleNavigationSpeaker.toggleMute()
-            btnMuteUnmute.setIconResource(if (nowMuted) com.mapbox.services.android.navigation.ui.v5.R.drawable.ic_sound_off else com.mapbox.services.android.navigation.ui.v5.R.drawable.ic_sound_on)
-        }
+        TurnByTurnNavigationUI()
 
         if (isDataVisible) {
             updateVisibilityUI()
@@ -954,7 +856,7 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
     }
 
     // Fungsi bantuan untuk menyimpan status ke SharedPreferences
-    private fun saveStatus(isVisible: Boolean) {
+    internal fun saveStatus(isVisible: Boolean) {
         sharedPreferences.edit().putBoolean(KEY_STATUS, isVisible).apply()
         recenterCarLoc()
         updateVisibilityUI()
@@ -1022,7 +924,7 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
         onBackPressedDispatcher.addCallback(backToSearchMap)
     }
 
-    private fun onLocationResultSelected() {
+    internal fun onLocationResultSelected() {
         directionsStart.text = SpannableStringBuilder("Lokasi saya")
         directionsEnd.text = SpannableStringBuilder("${this.displayName}")
 
@@ -1107,7 +1009,7 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
         if (routeRestoredList.isNullOrEmpty()) {
             fetchRouting()
         } else if (!routeRestoredList.isNullOrEmpty()) {
-            loadNavigationRoutes()
+            loadRoutes()
         }
 
         RouteSummaryUI(
@@ -1126,7 +1028,7 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
     }
 
     fun fetchRouting() {
-        if (!isNavigationTurnByTurnMode) {
+        if (routeRestoredList.isNullOrEmpty()) {
             // GANTI BLOK NAVIGATIONROUTE.BUILDER LAMA ANDA DENGAN INI:
             osrmBaseUrl = "http://router.project-osrm.org/" // Ganti dengan URL server OSRM Anda
             user = "route/v1/"
@@ -1144,25 +1046,16 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                     route = routeList[currentRouteIndex]
 
                     runOnUiThread {
-                        navigationViewModel.setRoute(selectedRoute)
 
                         loadRoutes()
                     }
                 }
             }
         }
-
-        if (isNavigationTurnByTurnMode) {
-            runOnUiThread {
-                navigationViewModel.setRoute(route)
-
-                loadNavigationRoutes()
-            }
-        }
     }
 
     fun loadRoutes() {
-        if (!isNavigationTurnByTurnMode && routeList != null) {
+        if (routeList != null) {
 
             currentRouteIndex = 0
 
@@ -1185,22 +1078,12 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                 }
             }
 
-            updateRouteUi(routeList[currentRouteIndex])// Set teks rute utama (Indeks ke-0) secara default
+            if (!isNavigationTurnByTurnMode) {
+                updateRouteUi(routeList[currentRouteIndex])// Set teks rute utama (Indeks ke-0) secara default
+            }
 
             updateRouteSummaryUI()
 
-        }
-
-        if (isNavigationTurnByTurnMode) {
-            startNavigationRoute()
-        }
-    }
-
-    fun loadNavigationRoutes() {
-        if (isNavigationTurnByTurnMode) {
-            navigationViewModel.setRoute(route)
-
-            navigationMapRoute?.addRoute(route)
         }
     }
 
@@ -1283,97 +1166,45 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
         return boundsBuilder.build()
     }
 
-    private fun setupObservers() {
-        // Amati status navigasi dari ViewModel
-        navigationViewModel.isNavigating.observe(this) { isNavigating ->
-            if (isNavigating) {
-                restoreNavigationUI()
-                loadRoutes()
-            } else {
-                loadRoutes()
-            }
-        }
-    }
-
-    // Memulihkan tampilan UI saat terjadi rotasi tanpa mengulang pemicu awal
-    private fun restoreNavigationUI() {
+    fun startSimulationRoute() {
         routeSummaryLayout.visibility = View.GONE
         navigationTurnByTurnUI.visibility = View.VISIBLE
 
-        if (isSimulationMode) {
-            startSimulationRoute()
-            routeSimulationBtn.visibility = View.INVISIBLE
+        saveStatus(true)
+
+        val currentDemoLocationEngine = demoLocationEngine
+
+        if (currentDemoLocationEngine != null) {
+            navigation.locationEngine = demoLocationEngine
+
+
+            demoLocationEngine.assign(route)
+            navigation.startNavigation(route)
+
+            Log.d("Navigation", "rute simulasi navigasi berhasil dipulihkan")
         }
 
-        if (!isSimulationMode) {
-            startNavigationRoute()
-            routeSimulationBtn.visibility = View.INVISIBLE
-        }
-
-        val currentNavigationLocation = navigationlocation
-
-        if (currentNavigationLocation != null) {
-            navigationViewModel.updateLocation(currentNavigationLocation)
-        }
-
-        if (realTimeLocationEnabled) {
-            recenterCarLoc()
-        }
-
-        onBackPressedDispatcher.addCallback(this, backToStartMapView)
-    }
-
-    fun startSimulationRoute() {
-        val currentRoute: DirectionsRoute? = navigationViewModel.currentRoute.value
-        val currentEngine = demoLocationEngine
-
-        if (currentRoute != null && currentEngine != null) {
-            navigation.locationEngine = currentEngine
-            route = currentRoute
-
-            // Hanya jalankan engine navigasi jika belum berjalan
-            val isNavigating = navigationViewModel.isNavigating.value ?: false
-            if (isNavigating) {
-                currentEngine.assign(route)
-                navigation.startNavigation(route)
-            }
-
-            Log.d("Navigation", "rute navigasi berhasil dipulihkan")
-        }
+        onBackPressedDispatcher.addCallback(backToStartMapView)
     }
 
     fun startNavigationRoute() {
-        val currentRoute: DirectionsRoute? = navigationViewModel.currentRoute.value
-        val currentEngine = navigationLocationEngine
+        routeSummaryLayout.visibility = View.GONE
+        navigationTurnByTurnUI.visibility = View.VISIBLE
 
-        if (currentRoute != null && currentEngine != null) {
-            navigation.locationEngine = currentEngine
-            route = currentRoute
+        saveStatus(true)
 
-            // Hanya jalankan engine navigasi jika belum berjalan
-            val isNavigating = navigationViewModel.isNavigating.value ?: false
-            if (isNavigating) {
-                navigation.startNavigation(route)
-            }
+        val currentLocationEngine = navigationLocationEngine
+
+        if (currentLocationEngine != null) {
+            navigation.locationEngine = currentLocationEngine
+
+
+            navigation.startNavigation(route)
 
             Log.d("Navigation", "rute navigasi berhasil dipulihkan")
         }
-    }
 
-    fun startDemoNavigationTurnByTurn() {
-        navigationViewModel.setNavigatingStatus(true)
-        saveStatus(true)
-        toggleLocationSource(true)
-
-        restoreNavigationUI()
-    }
-
-    // Dipanggil HANYA saat pengguna menekan tombol "Start Navigation"
-    fun startNavigationTurnByTurn() {
-        navigationViewModel.setNavigatingStatus(true)
-        saveStatus(true)
-
-        restoreNavigationUI()
+        onBackPressedDispatcher.addCallback(backToStartMapView)
     }
 
     @SuppressLint("NewApi", "SetTextI18n")
@@ -1487,19 +1318,17 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                 }
 
                 val jenisBelokan = when (type) {
-                    "arrive" -> "anda telah sampai di tujuan"
-                    "depart" -> "mari kita berangkat"
                     "turn" -> arahBelokan
                     "continue" -> "terus berkendara sejauh"
-                    "fork" -> "cabang"
-                    "merge" -> "bergabung ke jalur"
+                    "fork" -> "cabang $arahBelokan"
+                    "merge" -> "bergabung ke jalur $arahBelokan"
                     "rotary" -> "di bundaran besar"
                     "exit rotary" -> "keluar dari bundaran besar"
                     "roundabout" -> "di bundaran"
-                    "roundabout turn" -> "di bundaran, ambil belokan"
+                    "roundabout turn" -> "di bundaran, ambil belokan $arahBelokan"
                     "exit roundabout" -> "keluar dari bundaran"
-                    "on ramp" -> "masuk ke jalan tol"
-                    "off ramp" -> "keluar dari jalan tol"
+                    "on ramp" -> "masuk ke jalan tol $arahBelokan"
+                    "off ramp" -> "keluar dari jalan tol $arahBelokan"
                     else -> arahBelokan.ifEmpty { "ikuti petunjuk arah" }
                 }
 
@@ -1531,7 +1360,7 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                 }
 
                 if (type == "arrive") {
-                    announcement = "Anda telah sampai di tujuan"
+                    announcement = "$teksJarak anda akan sampai di tujuan"
                 } else if (type == "depart") {
                     announcement = "Mulai perjalanan, ikuti petunjuk arah"
                 } else {
@@ -1678,14 +1507,15 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
         outState.putBoolean("KEY_NAV_STARTED", isNavigating)
         outState.putBoolean("KEY_IS_TBT_MODE", isNavigationTurnByTurnMode)
         outState.putBoolean("KEY_REALTIME_LOC", realTimeLocationEnabled)
+        outState.putBoolean("KEY_SIMULATION_MODE", isSimulationMode)
 
         // 2. Simpan indeks rute jika ada
         outState.putInt("KEY_CURRENT_ROUTE_INDEX", currentRouteIndex)
 
         if (isNavigationTurnByTurnMode) {
 
-            route.let {
-                outState.putString("KEY_ROUTE_JSON", it.toJson().toString())
+            route.let { routing ->
+                outState.putString("KEY_ROUTE_JSON", routing.toJson().toString())
             }
 
             navigationlocation.let {
@@ -1725,7 +1555,6 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
         override fun handleOnBackPressed() {
             MaterialAlertDialogBuilder(this@MapActivity)
                 .setTitle(R.string.exit_navigation_app_title)
-                .setMessage(R.string.exit_navigation_app_dialog)
                 .setPositiveButton(R.string.exit_navigation_app_yes) { _, _ ->
                     finish()
                 }
@@ -1751,7 +1580,7 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
         }
     }
 
-    private val backToSearchMap = object : OnBackPressedCallback(true) {
+    internal val backToSearchMap = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
             DataSearchUI(
                 marker,
@@ -1773,7 +1602,7 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
         }
     }
 
-    private val backToLocationOnMapInfo = object : OnBackPressedCallback(true) {
+    internal val backToLocationOnMapInfo = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
             navigationMapRoute?.removeRoute()
             mapboxMap.removeMarker(marker)
@@ -1808,58 +1637,65 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
         }
     }
 
-    private val backToStartMapView = object : OnBackPressedCallback(true) {
+    internal val backToStartMapView = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
-
-            toggleLocationSource(false)
-            navigationViewModel.clearRoute()
-            navigationViewModel.setNavigatingStatus(false)
-            routeRestoredList.clear()
-            navigation.removeOffRouteListener(offRouteListener)
-            navigationMapRoute?.removeRoute()
-            mapboxMap.removeMarker(marker)
-            navigation.stopNavigation()
-
-            isNavigationTurnByTurnMode = false
-
-            realTimeLocationEnabled = true
-            isNavigating = false
-            isDirectionsRoute = false
-            isLocationSelected = false
-            isSearchUIVisible = false
-            adapter.clear()
-            searchLocation.text?.clear()
-            NavigationTurnByTurnUI(
-                navigationTurnByTurnUI,
-                mapButtonUI,
-                directionsTime,
-                directionsDistance,
-                directionsEta,
-                startNavigationBtn,
-                routeDistance,
-                routeDuration,
-                directionsStart,
-                directionsEnd,
-                routeTransportationMode,
-                routeTransportationCar,
-                routeTransportationPedestrian
-            ).stopNavigationRoute()
-
-            routeTransportationCar.backgroundTintList =
-                ContextCompat.getColorStateList(this@MapActivity, R.color.white)
-            routeTransportationPedestrian.backgroundTintList =
-                ContextCompat.getColorStateList(
-                    this@MapActivity,
-                    com.mapbox.services.android.navigation.R.color.md_grey_700
-                )
-
-            removeBackToRouteSummary()
-            removeBackToLocationOnMapInfo()
-            removeBackToSearchMap()
-            removeBackToMap()
-
-            onBackPressedDispatcher.addCallback(closeThisNavMapsApp)
+            MaterialAlertDialogBuilder(this@MapActivity)
+                .setTitle(R.string.exit_navigation_route_title)
+                .setPositiveButton(R.string.exit_navigation_app_yes) { _, _ ->
+                    cancelNavigationRoute()
+                }
+                .setNegativeButton(R.string.exit_navigation_app_no, null)
+                .show()
         }
+    }
+
+    fun cancelNavigationRoute() {
+        toggleLocationSource(false)
+        isSimulationMode = false
+        routeRestoredList.clear()
+        navigation.removeOffRouteListener(offRouteListener)
+        navigationMapRoute?.removeRoute()
+        mapboxMap.removeMarker(marker)
+        navigation.stopNavigation()
+
+        isNavigationTurnByTurnMode = false
+
+        realTimeLocationEnabled = true
+        isDirectionsRoute = false
+        isLocationSelected = false
+        isSearchUIVisible = false
+        adapter.clear()
+        searchLocation.text?.clear()
+        NavigationTurnByTurnUI(
+            navigationTurnByTurnUI,
+            mapButtonUI,
+            directionsTime,
+            directionsDistance,
+            directionsEta,
+            startNavigationBtn,
+            routeDistance,
+            routeDuration,
+            directionsStart,
+            directionsEnd,
+            routeTransportationMode,
+            routeTransportationCar,
+            routeTransportationPedestrian
+        ).stopNavigationRoute()
+
+        routeTransportationCar.backgroundTintList =
+            ContextCompat.getColorStateList(this@MapActivity, R.color.white)
+        routeTransportationPedestrian.backgroundTintList =
+            ContextCompat.getColorStateList(
+                this@MapActivity,
+                com.mapbox.services.android.navigation.R.color.md_grey_700
+            )
+
+        removeBackToRouteSummary()
+        removeBackToLocationOnMapInfo()
+        removeBackToSearchMap()
+        removeBackToMap()
+
+        onBackPressedDispatcher.addCallback(closeThisNavMapsApp)
     }
 
     fun removeBackToSearchMap() {

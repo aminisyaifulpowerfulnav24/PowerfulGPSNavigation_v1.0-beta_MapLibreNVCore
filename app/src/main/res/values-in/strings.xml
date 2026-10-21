@@ -6,7 +6,7 @@
     <string name="open_settings">Buka pengaturan</string>
     <string name="cancel">Batal</string>
     <string name="exit_navigation_app_title">Keluar dari Powerful GPS Navigation</string>
-    <string name="exit_navigation_app_dialog">Apakah kamu yakin?</string>
+    <string name="exit_navigation_route_title">Hentikan rute navigasi?</string>
     <string name="exit_navigation_app_yes">Ya</string>
     <string name="exit_navigation_app_no">Tidak</string>
     <string name="search_navigate_to">Cari/Bernavigasi ke...</string>

@@ -19,16 +19,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PowerfulGPSNavigation"
         android:appCategory="maps"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true">
         <activity
             android:name=".MapActivity"
-            android:configChanges="keyboard|keyboardHidden"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:alwaysRetainTaskState="true"
             android:turnScreenOn="true"
             android:showOnLockScreen="true"
-            android:showWhenLocked="true">
+            android:showWhenLocked="true"
+            android:hardwareAccelerated="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

@@ -6,7 +6,7 @@
     <string name="open_settings">Open settings</string>
     <string name="cancel">Cancel</string>
     <string name="exit_navigation_app_title">Exit Powerful GPS Navigation</string>
-    <string name="exit_navigation_app_dialog">Are you sure?</string>
+    <string name="exit_navigation_route_title">Stop navigation route?</string>
     <string name="exit_navigation_app_yes">Yes</string>
     <string name="exit_navigation_app_no">No</string>
     <string name="search_navigate_to">Search/Navigate to...</string>
