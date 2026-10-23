@@ -90,7 +90,6 @@
             android:textAlignment="center"
             android:text="--    km/h"
             android:background="@drawable/circle_shape_navigation_speed_kph"
-            android:backgroundTint="@color/md_grey_800"
             android:visibility="invisible"
             app:layout_constraintBottom_toTopOf="@id/navQuickMenu"
             app:layout_constraintRight_toRightOf="parent"
