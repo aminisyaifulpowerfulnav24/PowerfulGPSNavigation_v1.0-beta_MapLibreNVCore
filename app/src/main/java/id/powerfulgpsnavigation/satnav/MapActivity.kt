@@ -1542,6 +1542,7 @@ class MapActivity : AppCompatActivity() {
                                 navigationViewModel.clearNavigationData()
                                 navigationViewModel.setRouteAlt(routeList)
                                 navigationViewModel.setRoute(route)
+                                routeRestoredList.clear()
                                 navigation.startNavigation(route) // Mulai ulang pelacakan dengan rute baru (Kunci Snap Berfungsi Lagi)
                                 navigationViewModel.setNavigationData(navigation)
 
@@ -1753,12 +1754,11 @@ class MapActivity : AppCompatActivity() {
     fun cancelNavigationRoute() {
         toggleLocationSource(false)
         isSimulationMode = false
-        routeRestoredList.isNullOrEmpty()
-        routeNavigationJson = null
         navigation.removeOffRouteListener(offRouteListener)
         navigationMapRoute?.removeRoute()
         navigationViewModel.clearRoute()
         navigationViewModel.clearRouteAlt()
+        routeRestoredList.clear()
         mapboxMap.removeMarker(marker)
         navigation.stopNavigation()
         navigationViewModel.clearNavigationData()
