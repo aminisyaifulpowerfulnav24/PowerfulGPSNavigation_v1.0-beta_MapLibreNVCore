@@ -857,14 +857,6 @@ class MapActivity : AppCompatActivity() {
                             "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
                     }
                 }
-            } else {
-                runOnUiThread {
-                    navigationlocation = navigationViewModel.currentLocation.value!!
-
-                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
-
-                    routeNavigationCurrentSpeed.text = "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
-                }
             }
         }
     }
