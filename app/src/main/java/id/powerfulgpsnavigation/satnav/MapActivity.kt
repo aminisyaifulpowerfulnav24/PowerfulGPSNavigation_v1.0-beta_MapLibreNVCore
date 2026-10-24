@@ -630,11 +630,9 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                     navigationMapRoute?.addRoutes(routeList)
 
                     if (isNavigationTurnByTurnMode) {
+                        route = navigationViewModel.currentRoute.value!!
 
                         if (!isSimulationMode) {
-                            route = navigationViewModel.currentRoute.value!!
-                            navigationlocation = navigationViewModel.currentLocation.value
-
                             startNavigationRoute()
 
                             navigation.startNavigation(route)
@@ -643,13 +641,14 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                                 navigationlocation = navigationViewModel.currentLocation.value ?: location
 
                                 if (::navigation.isInitialized) {
-                                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+                                    runOnUiThread {
+                                        locationSmoothAnimator?.animateToNewLocation(
+                                            navigationlocation!!
+                                        )
+                                    }
                                 }
                             }
                         } else {
-                            route = navigationViewModel.currentRoute.value!!
-                            navigationlocation = navigationViewModel.currentLocation.value
-
                             startSimulationRoute()
 
                             demoLocationEngine.let {
@@ -663,7 +662,11 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                                 navigationlocation = navigationViewModel.currentLocation.value ?: location
 
                                 if (::navigation.isInitialized) {
-                                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+                                    runOnUiThread {
+                                        locationSmoothAnimator?.animateToNewLocation(
+                                            navigationlocation!!
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1279,13 +1282,19 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
         routeProgress: RouteProgress?
     ) {
         navigationlocation = location ?: return
+        navigationViewModel.updateLocation(navigationlocation!!)
 
         if (::navigation.isInitialized) {
             runOnUiThread {
-                navigationViewModel.updateLocation(navigationlocation!!)
+                navigationlocation = navigationViewModel.currentLocation.value ?: location
                 locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                 speedNavigationInKph.text = "${(navigationlocation!!.speed * 3.6).toInt()}     km/h"
             }
+        }
+
+        if (location != null) {
+
+            Log.d("GPS Tracker", "Posisi Navigasi GPS: ${navigationlocation!!.latitude}, ${navigationlocation!!.longitude}")
         }
 
         // Inisialisasi sekali di onCreate()
