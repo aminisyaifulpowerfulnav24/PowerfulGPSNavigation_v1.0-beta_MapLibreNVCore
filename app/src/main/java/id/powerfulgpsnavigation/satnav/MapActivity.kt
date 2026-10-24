@@ -105,8 +105,9 @@ import java.io.IOException
 import java.net.URL
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Objects
 
-class MapActivity : AppCompatActivity(), ProgressChangeListener {
+class MapActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private val locationPermissionRequest = registerForActivityResult(
@@ -291,7 +292,7 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
     private lateinit var navigationRoute: DirectionsRoute
     private lateinit var navigationRouteBuilder: NavigationRoute.Builder
 
-    private lateinit var navigation: MapboxNavigation
+    internal lateinit var navigation: MapboxNavigation
     private var navigationMapRoute: NavigationMapRoute? = null
 
     private lateinit var directionsResponse: com.mapbox.services.android.navigation.v5.models.DirectionsResponse
@@ -406,7 +407,6 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                 .build()
         ).apply {
             this.snapEngine
-            addProgressChangeListener(this@MapActivity)
         }
 
         mapView.getMapAsync { map ->
@@ -631,42 +631,24 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
 
                     if (isNavigationTurnByTurnMode) {
                         route = navigationViewModel.currentRoute.value!!
+                        navigation = navigationViewModel.navigationTurnByTurnData.value!!
 
                         if (!isSimulationMode) {
                             startNavigationRoute()
 
-                            navigation.startNavigation(route)
-
-                            navigation.addProgressChangeListener { location, progress ->
-                                navigationlocation = navigationViewModel.currentLocation.value ?: location
-
-                                if (::navigation.isInitialized) {
-                                    runOnUiThread {
-                                        locationSmoothAnimator?.animateToNewLocation(
-                                            navigationlocation!!
-                                        )
-                                    }
-                                }
+                            navigation.let {
+                                it.startNavigation(route)
+                                it.addProgressChangeListener(navigationProgressChangeListener)
                             }
                         } else {
                             startSimulationRoute()
 
                             demoLocationEngine.let {
-                                it.updateSpeed(demoLocationSpeed)
-                                it.assign(route)
-                            }
-
-                            navigation.startNavigation(route)
-
-                            navigation.addProgressChangeListener { location, progress ->
-                                navigationlocation = navigationViewModel.currentLocation.value ?: location
-
-                                if (::navigation.isInitialized) {
-                                    runOnUiThread {
-                                        locationSmoothAnimator?.animateToNewLocation(
-                                            navigationlocation!!
-                                        )
-                                    }
+                                navigation.let { navigation ->
+                                    it.updateSpeed(demoLocationSpeed)
+                                    it.assign(route)
+                                    navigation.startNavigation(route)
+                                    navigation.addProgressChangeListener(navigationProgressChangeListener)
                                 }
                             }
                         }
@@ -1250,6 +1232,8 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
             }
             navigation.startNavigation(route)
 
+            navigation.addProgressChangeListener(navigationProgressChangeListener)
+
             Log.d("Navigation", "rute simulasi navigasi berhasil dipulihkan")
         }
 
@@ -1270,6 +1254,8 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
 
             navigation.startNavigation(route)
 
+            navigation.addProgressChangeListener(navigationProgressChangeListener)
+
             Log.d("Navigation", "rute navigasi berhasil dipulihkan")
         }
 
@@ -1277,11 +1263,8 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
     }
 
     @SuppressLint("NewApi", "SetTextI18n")
-    override fun onProgressChange(
-        location: Location?,
-        routeProgress: RouteProgress?
-    ) {
-        navigationlocation = location ?: return
+    var navigationProgressChangeListener = ProgressChangeListener { location, routeProgress ->
+        navigationlocation = location ?: return@ProgressChangeListener
         navigationViewModel.updateLocation(navigationlocation!!)
 
         if (::navigation.isInitialized) {
@@ -1365,8 +1348,8 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
                         "${(navigationlocation!!.speed * 3.6).toInt()}     km/h"
                 }
 
-                val legProgress = routeProgress.currentLegProgress() ?: return
-                val stepProgress = legProgress.currentStepProgress() ?: return
+                val legProgress = routeProgress.currentLegProgress() ?: return@ProgressChangeListener
+                val stepProgress = legProgress.currentStepProgress() ?: return@ProgressChangeListener
 
                 val distanceRemaining = stepProgress.distanceRemaining()
                 val stepIndex = legProgress.stepIndex()
@@ -1530,8 +1513,10 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
 
                                 navigationViewModel.clearRoute()
                                 navigation.stopNavigation() // Hentikan pelacakan rute lama
+                                navigationViewModel.clearNavigationData()
                                 navigationViewModel.setRoute(route)
                                 navigation.startNavigation(route) // Mulai ulang pelacakan dengan rute baru (Kunci Snap Berfungsi Lagi)
+                                navigationViewModel.setNavigationData(navigation)
 
                                 // Gambar rute baru di peta buatan Anda
                                 navigationMapRoute?.addRoute(route)
@@ -1751,6 +1736,7 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
         navigationViewModel.clearRoute()
         mapboxMap.removeMarker(marker)
         navigation.stopNavigation()
+        navigationViewModel.clearNavigationData()
 
         isNavigationTurnByTurnMode = false
 
