@@ -150,7 +150,7 @@ class MapActivity : AppCompatActivity() {
     private var lastLocation: Location? = null
     private lateinit var freeDriveMode: MapboxNavigation
     private lateinit var speedNavigationInKph: TextView
-    private var navigationlocation: Location? = null
+    internal var navigationlocation: Location? = null
     private var navigationLocationEngine: LocationEngine? = null
     private lateinit var navigationCamera: CameraPosition
     private lateinit var locationOptions: LocationComponentOptions
@@ -410,6 +410,7 @@ class MapActivity : AppCompatActivity() {
         }
 
         mapView.getMapAsync { map ->
+
             mapboxMap = map
 
             mapUiSettings = mapboxMap.uiSettings
@@ -421,6 +422,7 @@ class MapActivity : AppCompatActivity() {
             currentMapStyle = if (isNightTime()) DARK_STYLE else LIGHT_STYLE
 
             mapboxMap.setStyle(currentMapStyle) { nvMapStyle ->
+
                 navigationMapRoute = NavigationMapRoute(navigation, mapView, mapboxMap)
 
                 locationSmoothAnimator = LocationSmoothAnimator(mapboxMap)
@@ -632,6 +634,7 @@ class MapActivity : AppCompatActivity() {
                     if (isNavigationTurnByTurnMode) {
                         route = navigationViewModel.currentRoute.value!!
                         navigation = navigationViewModel.navigationTurnByTurnData.value!!
+                        navigationlocation = navigationViewModel.currentLocation.value!!
 
                         if (!isSimulationMode) {
                             startNavigationRoute()
@@ -837,7 +840,9 @@ class MapActivity : AppCompatActivity() {
         override fun onLocationChanged(location: Location) {
             navigationlocation = location
 
-            locationComponent?.locationEngine = null
+            if (isNavigationTurnByTurnMode && navigationlocation != null) {
+                navigationViewModel.updateLocation(navigationlocation!!)
+            }
 
             if(!isNavigationTurnByTurnMode) {
                 if (::navigation.isInitialized) {
@@ -1265,11 +1270,10 @@ class MapActivity : AppCompatActivity() {
     @SuppressLint("NewApi", "SetTextI18n")
     var navigationProgressChangeListener = ProgressChangeListener { location, routeProgress ->
         navigationlocation = location ?: return@ProgressChangeListener
-        navigationViewModel.updateLocation(navigationlocation!!)
 
         if (::navigation.isInitialized) {
             runOnUiThread {
-                navigationlocation = navigationViewModel.currentLocation.value ?: location
+                navigationViewModel.updateLocation(navigationlocation!!)
                 locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                 speedNavigationInKph.text = "${(navigationlocation!!.speed * 3.6).toInt()}     km/h"
             }
@@ -1737,6 +1741,7 @@ class MapActivity : AppCompatActivity() {
         mapboxMap.removeMarker(marker)
         navigation.stopNavigation()
         navigationViewModel.clearNavigationData()
+        navigationViewModel.clearLocationData()
 
         isNavigationTurnByTurnMode = false
 

@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import com.mapbox.mapboxsdk.maps.MapView
+import com.mapbox.mapboxsdk.maps.MapboxMap
 import com.mapbox.services.android.navigation.v5.models.DirectionsRoute
 import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigation
 import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigationOptions
@@ -13,6 +14,9 @@ import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigationOpti
 class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel() {
     private val _currentMapView = MutableLiveData<MapView>()
     val currentMapView: LiveData<MapView> = _currentMapView
+
+    private val _currentMapboxMap = MutableLiveData<MapboxMap>()
+    val currentMapboxMap: LiveData<MapboxMap> = _currentMapboxMap
 
     private val _currentRoute = MutableLiveData<DirectionsRoute>()
     val currentRoute: LiveData<DirectionsRoute> = _currentRoute
@@ -26,11 +30,14 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
     val isNavigating: LiveData<Boolean> = savedStateHandle.getLiveData("IS_NAVIGATING", false)
 
     var _navigationTurnByTurnData = MutableLiveData<MapboxNavigation>()
-
     var navigationTurnByTurnData: LiveData<MapboxNavigation> = _navigationTurnByTurnData
 
     fun setMapView(mapView: MapView) {
         _currentMapView.value = mapView
+    }
+
+    fun setMapboxMap(mapboxMap: MapboxMap) {
+        _currentMapboxMap.value = mapboxMap
     }
 
     // Panggil fungsi ini saat pertama kali mendapatkan route
@@ -49,6 +56,10 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
 
     fun clearNavigationData() {
         _navigationTurnByTurnData.value = null
+    }
+
+    fun clearLocationData() {
+        _currentLocation.value = null
     }
 
     fun setNavigatingStatus(isNavigating: Boolean) {
