@@ -17,7 +17,7 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
     // Simpan status apakah sedang navigasi turn-by-turn
     val isNavigating: LiveData<Boolean> = savedStateHandle.getLiveData("IS_NAVIGATING", false)
 
-    val currentLocation: LiveData<Location> = _currentLocation
+    var currentLocation: LiveData<Location> = _currentLocation
 
     // Panggil fungsi ini saat pertama kali mendapatkan route
     fun setRoute(route: DirectionsRoute) {

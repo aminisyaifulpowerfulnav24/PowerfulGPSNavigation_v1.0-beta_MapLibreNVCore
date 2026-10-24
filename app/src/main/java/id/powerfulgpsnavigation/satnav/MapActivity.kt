@@ -639,8 +639,12 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
 
                             navigation.startNavigation(route)
 
-                            if (::navigation.isInitialized) {
-                                locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+                            navigation.addProgressChangeListener { location, progress ->
+                                navigationlocation = navigationViewModel.currentLocation.value ?: location
+
+                                if (::navigation.isInitialized) {
+                                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+                                }
                             }
                         } else {
                             route = navigationViewModel.currentRoute.value!!
@@ -655,8 +659,12 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
 
                             navigation.startNavigation(route)
 
-                            if (::navigation.isInitialized) {
-                                locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+                            navigation.addProgressChangeListener { location, progress ->
+                                navigationlocation = navigationViewModel.currentLocation.value ?: location
+
+                                if (::navigation.isInitialized) {
+                                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+                                }
                             }
                         }
                     }
@@ -853,14 +861,6 @@ class MapActivity : AppCompatActivity(), ProgressChangeListener {
 
                         speedNavigationInKph.text =
                             "${(navigationlocation!!.speed * 3.6).toInt()}     km/h"
-                    }
-                }
-            } else if (isNavigationTurnByTurnMode) {
-                if (::navigation.isInitialized) {
-                    runOnUiThread {
-                        navigationlocation = navigationViewModel.currentLocation.value
-
-                        locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                     }
                 }
             }
