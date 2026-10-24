@@ -25,8 +25,8 @@ fun MapActivity.RouteDirectionsSummary() {
     }
 
     routeSimulationBtn.setOnClickListener {
-        navigationViewModel.setRoute(route)
         navigationViewModel.setNavigationData(navigation)
+        navigationViewModel.setDemoNavigationEngine(demoLocationEngine)
         isNavigationTurnByTurnMode = true
         isNavigating = true
         toggleLocationSource(true)
@@ -35,8 +35,8 @@ fun MapActivity.RouteDirectionsSummary() {
     }
 
     startNavigationBtn.setOnClickListener {
-        navigationViewModel.setRoute(route)
         navigationViewModel.setNavigationData(navigation)
+        navigationViewModel.setNavigationEngine(navigationLocationEngine!!)
         isNavigationTurnByTurnMode = true
         isNavigating = true
         toggleLocationSource(false)

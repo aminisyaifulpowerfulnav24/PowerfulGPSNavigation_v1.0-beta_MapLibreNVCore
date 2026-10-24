@@ -147,11 +147,11 @@ class MapActivity : AppCompatActivity() {
     private var locationComponent: LocationComponent? = null
     private lateinit var locationAnimationComponentOptions: LocationComponentOptions
     private lateinit var locationComponentActivationOptions: LocationComponentActivationOptions
-    private var lastLocation: Location? = null
+    private var lastNavigationLocation: Location? = null
     private lateinit var freeDriveMode: MapboxNavigation
     private lateinit var speedNavigationInKph: TextView
     internal var navigationlocation: Location? = null
-    private var navigationLocationEngine: LocationEngine? = null
+    internal var navigationLocationEngine: LocationEngine? = null
     private lateinit var navigationCamera: CameraPosition
     private lateinit var locationOptions: LocationComponentOptions
 
@@ -335,7 +335,7 @@ class MapActivity : AppCompatActivity() {
     private var isSimulationMode = false
     internal var isNavigationTurnByTurnMode = false
     private var isNavigationTurnByTurnEnabled = false
-    private var demoLocationEngine: ReplayRouteLocationEngine = ReplayRouteLocationEngine()
+    internal var demoLocationEngine: ReplayRouteLocationEngine = ReplayRouteLocationEngine()
     private var demoLocationSpeed: Int = 65
 
     private var locationSmoothAnimator: LocationSmoothAnimator? = null
@@ -621,37 +621,45 @@ class MapActivity : AppCompatActivity() {
                 navigationlocation?.speed = savedInstanceState.getFloat("NAVIGATION_LOC_SPEED")
                 navigationlocation?.bearing = savedInstanceState.getFloat("NAVIGATION_LOC_BEARING")
 
-                // Restore objek route dari JSON String
-                routeNavigationJson = savedInstanceState.getString("KEY_ROUTE_JSON")
-                if (!routeNavigationJson.isNullOrEmpty()) {
-                    route = DirectionsRoute.fromJson(routeNavigationJson)
-                    val routing = route
-                    routeRestoredList = mutableListOf(routing)
-                    routeList = routeRestoredList
+                if (!routeList.isNullOrEmpty()) {
+                    routeList = navigationViewModel.currentRouteAlt.value!!
 
                     navigationMapRoute?.addRoutes(routeList)
 
                     if (isNavigationTurnByTurnMode) {
-                        route = navigationViewModel.currentRoute.value!!
-                        navigation = navigationViewModel.navigationTurnByTurnData.value!!
-                        navigationlocation = navigationViewModel.currentLocation.value!!
 
                         if (!isSimulationMode) {
+                            route = navigationViewModel.currentRoute.value!!
+                            navigationlocation = navigationViewModel.currentLocation.value!!
+                            navigation = navigationViewModel.navigationTurnByTurnData.value!!
+                            navigationLocationEngine = navigationViewModel.navigationLocationEngine.value!!
+
                             startNavigationRoute()
 
-                            navigation.let {
-                                it.startNavigation(route)
-                                it.addProgressChangeListener(navigationProgressChangeListener)
+                            navigationLocationEngine.let { navigationEngine ->
+                                navigation.let {
+                                    it.locationEngine = navigationEngine!!
+                                    it.startNavigation(route)
+                                    it.addProgressChangeListener(navigationProgressChangeListener)
+                                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+                                }
                             }
                         } else {
+                            route = navigationViewModel.currentRoute.value!!
+                            navigationlocation = navigationViewModel.currentLocation.value!!
+                            navigation = navigationViewModel.navigationTurnByTurnData.value!!
+                            demoLocationEngine = navigationViewModel.replayRouteLocationEngine.value!!
+
                             startSimulationRoute()
 
                             demoLocationEngine.let {
                                 navigation.let { navigation ->
                                     it.updateSpeed(demoLocationSpeed)
                                     it.assign(route)
+                                    navigation.locationEngine = it
                                     navigation.startNavigation(route)
                                     navigation.addProgressChangeListener(navigationProgressChangeListener)
+                                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                                 }
                             }
                         }
@@ -681,10 +689,10 @@ class MapActivity : AppCompatActivity() {
             Configuration.ORIENTATION_LANDSCAPE -> {
                 if (isNavigationTurnByTurnMode) {
                     layoutLeft =
-                        (navigationTurnByTurnCardView.width + pLeft + 260)
+                        (directionsSummaryCardView.width + pLeft + 195)
                     layoutBottom = pBottom
                     layoutRight = pRight
-                    layoutTop = (navigationTurnByTurnCardView.height + pTop)
+                    layoutTop = (directionsSummaryCardView.height + pTop)
                 }
             }
             Configuration.ORIENTATION_PORTRAIT -> {
@@ -840,18 +848,22 @@ class MapActivity : AppCompatActivity() {
         override fun onLocationChanged(location: Location) {
             navigationlocation = location
 
-            if (isNavigationTurnByTurnMode && navigationlocation != null) {
-                navigationViewModel.updateLocation(navigationlocation!!)
-            }
-
             if(!isNavigationTurnByTurnMode) {
                 if (::navigation.isInitialized) {
                     runOnUiThread {
                         locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
 
                         speedNavigationInKph.text =
-                            "${(navigationlocation!!.speed * 3.6).toInt()}     km/h"
+                            "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
                     }
+                }
+            } else {
+                runOnUiThread {
+                    navigationlocation = navigationViewModel.currentLocation.value!!
+
+                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+
+                    routeNavigationCurrentSpeed.text = "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
                 }
             }
         }
@@ -1101,6 +1113,9 @@ class MapActivity : AppCompatActivity() {
 
                     runOnUiThread {
                         loadRoutes()
+
+                        navigationViewModel.setRouteAlt(routeList)
+                        navigationViewModel.setRoute(route)
                     }
                 }
             }
@@ -1231,13 +1246,15 @@ class MapActivity : AppCompatActivity() {
             route = navigationViewModel.currentRoute.value!!
             navigation.locationEngine = demoLocationEngine
 
-            demoLocationEngine.let {
-                it.updateSpeed(demoLocationSpeed)
-                it.assign(route)
+            currentDemoLocationEngine.let {
+                navigation.let { navigation ->
+                    it.updateSpeed(demoLocationSpeed)
+                    it.assign(route)
+                    navigation.locationEngine = it
+                    navigation.startNavigation(route)
+                    navigation.addProgressChangeListener(navigationProgressChangeListener)
+                }
             }
-            navigation.startNavigation(route)
-
-            navigation.addProgressChangeListener(navigationProgressChangeListener)
 
             Log.d("Navigation", "rute simulasi navigasi berhasil dipulihkan")
         }
@@ -1257,9 +1274,13 @@ class MapActivity : AppCompatActivity() {
             route = navigationViewModel.currentRoute.value!!
             navigation.locationEngine = currentLocationEngine
 
-            navigation.startNavigation(route)
-
-            navigation.addProgressChangeListener(navigationProgressChangeListener)
+            currentLocationEngine.let { locationEngine ->
+                navigation.let {
+                    it.locationEngine = locationEngine
+                    it.startNavigation(route)
+                    it.addProgressChangeListener(navigationProgressChangeListener)
+                }
+            }
 
             Log.d("Navigation", "rute navigasi berhasil dipulihkan")
         }
@@ -1273,13 +1294,13 @@ class MapActivity : AppCompatActivity() {
 
         if (::navigation.isInitialized) {
             runOnUiThread {
-                navigationViewModel.updateLocation(navigationlocation!!)
                 locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                 speedNavigationInKph.text = "${(navigationlocation!!.speed * 3.6).toInt()}     km/h"
             }
         }
 
         if (location != null) {
+            navigationViewModel.updateLocation(location)
 
             Log.d("GPS Tracker", "Posisi Navigasi GPS: ${navigationlocation!!.latitude}, ${navigationlocation!!.longitude}")
         }
@@ -1515,9 +1536,11 @@ class MapActivity : AppCompatActivity() {
 
                             runOnUiThread {
 
-                                navigationViewModel.clearRoute()
                                 navigation.stopNavigation() // Hentikan pelacakan rute lama
+                                navigationViewModel.clearRoute()
+                                navigationViewModel.clearRouteAlt()
                                 navigationViewModel.clearNavigationData()
+                                navigationViewModel.setRouteAlt(routeList)
                                 navigationViewModel.setRoute(route)
                                 navigation.startNavigation(route) // Mulai ulang pelacakan dengan rute baru (Kunci Snap Berfungsi Lagi)
                                 navigationViewModel.setNavigationData(navigation)
@@ -1581,10 +1604,6 @@ class MapActivity : AppCompatActivity() {
         outState.putInt("KEY_CURRENT_ROUTE_INDEX", currentRouteIndex)
 
         if (isNavigationTurnByTurnMode) {
-
-            route.let { routing ->
-                outState.putString("KEY_ROUTE_JSON", routing.toJson().toString())
-            }
 
             val orientation = resources.configuration.orientation
             when (orientation) {
@@ -1734,10 +1753,12 @@ class MapActivity : AppCompatActivity() {
     fun cancelNavigationRoute() {
         toggleLocationSource(false)
         isSimulationMode = false
-        routeRestoredList.clear()
+        routeRestoredList.isNullOrEmpty()
+        routeNavigationJson = null
         navigation.removeOffRouteListener(offRouteListener)
         navigationMapRoute?.removeRoute()
         navigationViewModel.clearRoute()
+        navigationViewModel.clearRouteAlt()
         mapboxMap.removeMarker(marker)
         navigation.stopNavigation()
         navigationViewModel.clearNavigationData()

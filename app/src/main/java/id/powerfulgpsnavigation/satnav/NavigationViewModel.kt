@@ -5,18 +5,23 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.mapbox.mapboxsdk.location.engine.LocationEngine
 import com.mapbox.mapboxsdk.maps.MapView
 import com.mapbox.mapboxsdk.maps.MapboxMap
+import com.mapbox.services.android.navigation.v5.location.replay.ReplayRouteLocationEngine
 import com.mapbox.services.android.navigation.v5.models.DirectionsRoute
 import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigation
 import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigationOptions
 
 class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel() {
-    private val _currentMapView = MutableLiveData<MapView>()
-    val currentMapView: LiveData<MapView> = _currentMapView
+    private val _navigationLocationEngine = MutableLiveData<LocationEngine>()
+    val navigationLocationEngine: LiveData<LocationEngine> = _navigationLocationEngine
 
-    private val _currentMapboxMap = MutableLiveData<MapboxMap>()
-    val currentMapboxMap: LiveData<MapboxMap> = _currentMapboxMap
+    private val _replayRouteLocationEngine = MutableLiveData<ReplayRouteLocationEngine>()
+    val replayRouteLocationEngine: LiveData<ReplayRouteLocationEngine> = _replayRouteLocationEngine
+
+    private val _currentRouteAlt = MutableLiveData<List<DirectionsRoute>>()
+    val currentRouteAlt: LiveData<List<DirectionsRoute>> = _currentRouteAlt
 
     private val _currentRoute = MutableLiveData<DirectionsRoute>()
     val currentRoute: LiveData<DirectionsRoute> = _currentRoute
@@ -32,12 +37,16 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
     var _navigationTurnByTurnData = MutableLiveData<MapboxNavigation>()
     var navigationTurnByTurnData: LiveData<MapboxNavigation> = _navigationTurnByTurnData
 
-    fun setMapView(mapView: MapView) {
-        _currentMapView.value = mapView
+    fun setNavigationEngine(navigationLocationEngine: LocationEngine) {
+        _navigationLocationEngine.value = navigationLocationEngine
     }
 
-    fun setMapboxMap(mapboxMap: MapboxMap) {
-        _currentMapboxMap.value = mapboxMap
+    fun setDemoNavigationEngine(replayRouteLocationEngine: ReplayRouteLocationEngine) {
+        _replayRouteLocationEngine.value = replayRouteLocationEngine
+    }
+
+    fun setRouteAlt(routeAlt: List<DirectionsRoute>) {
+        _currentRouteAlt.value = routeAlt
     }
 
     // Panggil fungsi ini saat pertama kali mendapatkan route
@@ -47,6 +56,10 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
 
     fun setNavigationData(navigation: MapboxNavigation) {
         _navigationTurnByTurnData.value = navigation
+    }
+
+    fun clearRouteAlt() {
+        _currentRouteAlt.value = null
     }
 
     // Clear rute ketika navigasi selesai atau dibatalkan
