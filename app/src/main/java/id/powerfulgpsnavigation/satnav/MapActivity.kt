@@ -634,7 +634,7 @@ class MapActivity : AppCompatActivity() {
 
                         if (!isSimulationMode) {
                             route = navigationViewModel.currentRoute.value!!
-                            navigationlocation = navigationViewModel.currentLocation.value!!
+                            navigationlocation = navigationViewModel.currentLocation.value
                             navigation = navigationViewModel.navigationTurnByTurnData.value!!
                             navigationLocationEngine = navigationViewModel.navigationLocationEngine.value!!
 
@@ -656,7 +656,7 @@ class MapActivity : AppCompatActivity() {
                             }
                         } else {
                             route = navigationViewModel.currentRoute.value!!
-                            navigationlocation = navigationViewModel.currentLocation.value!!
+                            navigationlocation = navigationViewModel.currentLocation.value
                             navigation = navigationViewModel.navigationTurnByTurnData.value!!
                             demoLocationEngine = navigationViewModel.replayRouteLocationEngine.value!!
 
@@ -864,14 +864,26 @@ class MapActivity : AppCompatActivity() {
 
     private val gpsLocationListenerUpdated = object : LocationListener {
         override fun onLocationChanged(location: Location) {
-            navigationlocation = location
 
             if(!isNavigationTurnByTurnMode) {
+                navigationlocation = location
+
                 runOnUiThread {
                     locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
 
                     speedNavigationInKph.text =
                         "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
+                }
+            } else if (isNavigationTurnByTurnMode) {
+                lastNavigationLocation = navigationViewModel.currentLocation.value
+                navigationlocation = lastNavigationLocation ?: location
+
+                if (::navigation.isInitialized) {
+                    runOnUiThread {
+                        locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+
+                        routeNavigationCurrentSpeed.text = "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
+                    }
                 }
             }
         }
@@ -1313,16 +1325,6 @@ class MapActivity : AppCompatActivity() {
         lastNavigationLocation = location ?: return@ProgressChangeListener
         navigationViewModel.updateLocation(lastNavigationLocation!!)
 
-        if (::navigation.isInitialized) {
-            runOnUiThread {
-                navigationlocation = navigationViewModel.currentLocation.value!!
-                locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
-                speedNavigationInKph.text = "${(navigationlocation!!.speed * 3.6).toInt()}     km/h"
-
-                Log.d("GPS Tracker", "Posisi Navigasi GPS: ${lastNavigationLocation!!.latitude}, ${lastNavigationLocation!!.longitude}")
-            }
-        }
-
         // Inisialisasi sekali di onCreate()
         val maneuverBannerManager = ManeuverBannerManager(
             context = this, // ID LinearLayout utama
@@ -1386,9 +1388,10 @@ class MapActivity : AppCompatActivity() {
                 directionsEta.text = "${timeNow}"
 
                 runOnUiThread {
+                    navigationlocation = navigationViewModel.currentLocation.value
                     locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                     routeNavigationCurrentSpeed.text =
-                        "${(navigationlocation!!.speed * 3.6).toInt()}     km/h"
+                        "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
                 }
 
                 val legProgress = routeProgress.currentLegProgress() ?: return@ProgressChangeListener
