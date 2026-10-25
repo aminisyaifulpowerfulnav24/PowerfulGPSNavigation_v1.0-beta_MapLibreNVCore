@@ -896,6 +896,7 @@ class MapActivity : AppCompatActivity() {
         if (isDataVisible) {
             RecenterPositionButtonUI(recenterPosition).recenterPosition()
             speedNavigationInKph.visibility = View.VISIBLE
+            recenterCarLoc()
         } else {
             onMovingMap()
         }

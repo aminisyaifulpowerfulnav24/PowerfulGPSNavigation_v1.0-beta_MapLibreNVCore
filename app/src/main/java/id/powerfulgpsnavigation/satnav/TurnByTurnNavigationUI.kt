@@ -1,6 +1,7 @@
 package id.powerfulgpsnavigation.satnav
 
 import android.view.View
+import com.mapbox.mapboxsdk.camera.CameraPosition
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
 
 fun MapActivity.TurnByTurnNavigationUI() {
@@ -9,6 +10,11 @@ fun MapActivity.TurnByTurnNavigationUI() {
             saveStatus(false)
             getRouteBounds(route)?.let { routeBounds ->
                 val padding = intArrayOf(layoutLeft, layoutTop, layoutRight, layoutBottom)
+                mapboxMap.cameraPosition = CameraPosition.Builder()
+                    .bearing(0.0)
+                    .tilt(0.0)
+                    .build()
+
                 mapboxMap.getCameraForLatLngBounds(routeBounds, padding)?.let { cameraPosition ->
                     mapboxMap.animateCamera(
                         CameraUpdateFactory.newCameraPosition(cameraPosition),

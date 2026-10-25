@@ -25,22 +25,22 @@ fun MapActivity.RouteDirectionsSummary() {
     }
 
     routeSimulationBtn.setOnClickListener {
+        saveStatus(true)
         navigationViewModel.setNavigationData(navigation)
         navigationViewModel.setDemoNavigationEngine(demoLocationEngine)
         isNavigationTurnByTurnMode = true
         isNavigating = true
         toggleLocationSource(true)
-        saveStatus(true)
         startSimulationRoute()
     }
 
     startNavigationBtn.setOnClickListener {
+        saveStatus(true)
         navigationViewModel.setNavigationData(navigation)
         navigationViewModel.setNavigationEngine(navigationLocationEngine!!)
         isNavigationTurnByTurnMode = true
         isNavigating = true
         toggleLocationSource(false)
-        saveStatus(true)
         startNavigationRoute()
     }
 }
