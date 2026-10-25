@@ -147,10 +147,10 @@ class MapActivity : AppCompatActivity() {
     private var locationComponent: LocationComponent? = null
     private lateinit var locationAnimationComponentOptions: LocationComponentOptions
     private lateinit var locationComponentActivationOptions: LocationComponentActivationOptions
-    private var lastNavigationLocation: Location? = null
     private lateinit var freeDriveMode: MapboxNavigation
     private lateinit var speedNavigationInKph: TextView
     internal var navigationlocation: Location? = null
+    internal var lastNavigationLocation: Location? = null
     internal var navigationLocationEngine: LocationEngine? = null
     private lateinit var navigationCamera: CameraPosition
     private lateinit var locationOptions: LocationComponentOptions
@@ -849,13 +849,11 @@ class MapActivity : AppCompatActivity() {
             navigationlocation = location
 
             if(!isNavigationTurnByTurnMode) {
-                if (::navigation.isInitialized) {
-                    runOnUiThread {
-                        locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+                runOnUiThread {
+                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
 
-                        speedNavigationInKph.text =
-                            "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
-                    }
+                    speedNavigationInKph.text =
+                        "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
                 }
             }
         }
@@ -1282,19 +1280,17 @@ class MapActivity : AppCompatActivity() {
 
     @SuppressLint("NewApi", "SetTextI18n")
     var navigationProgressChangeListener = ProgressChangeListener { location, routeProgress ->
-        navigationlocation = location ?: return@ProgressChangeListener
+        lastNavigationLocation = location ?: return@ProgressChangeListener
+        navigationViewModel.updateLocation(lastNavigationLocation!!)
 
         if (::navigation.isInitialized) {
             runOnUiThread {
+                navigationlocation = navigationViewModel.currentLocation.value!!
                 locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                 speedNavigationInKph.text = "${(navigationlocation!!.speed * 3.6).toInt()}     km/h"
+
+                Log.d("GPS Tracker", "Posisi Navigasi GPS: ${lastNavigationLocation!!.latitude}, ${lastNavigationLocation!!.longitude}")
             }
-        }
-
-        if (location != null) {
-            navigationViewModel.updateLocation(location)
-
-            Log.d("GPS Tracker", "Posisi Navigasi GPS: ${navigationlocation!!.latitude}, ${navigationlocation!!.longitude}")
         }
 
         // Inisialisasi sekali di onCreate()
