@@ -259,6 +259,8 @@ class MapActivity : AppCompatActivity() {
         private const val KEY_ROUTE_NAVIGATION_UI = "key_route_navigation_ui"
     }
 
+    private lateinit var directionsRouteLayout: ConstraintLayout
+    private lateinit var directionsRouteInfoLayout: ConstraintLayout
     private lateinit var routeSummaryLayout: View
     private lateinit var directionsStart: AppCompatEditText
     private lateinit var directionsEnd: AppCompatEditText
@@ -270,6 +272,8 @@ class MapActivity : AppCompatActivity() {
     internal lateinit var startNavigationBtn: ExtendedFloatingActionButton
 
     private lateinit var routeOptions: RouteOptions
+
+    internal lateinit var padding: IntArray
 
     internal lateinit var originLocation: Location
     internal lateinit var origin: Point
@@ -316,11 +320,11 @@ class MapActivity : AppCompatActivity() {
     private var url = ""
 
     private lateinit var navigationTurnByTurnUI: View
-    private lateinit var navigationTurnByTurnCardView: CardView
+    internal lateinit var navigationTurnByTurnCardView: CardView
     private lateinit var iconTurnByTurn: ImageView
     private lateinit var turnByTurnDistance: TextView
     private lateinit var turnByTurnStreetName: TextView
-    private lateinit var directionsSummaryCardView: CardView
+    internal lateinit var directionsSummaryCardView: CardView
     private lateinit var directionsTime: TextView
     private lateinit var directionsDistance: TextView
     private lateinit var directionsEta: TextView
@@ -740,6 +744,8 @@ class MapActivity : AppCompatActivity() {
         getDirectionsButton = rootView.findViewById(R.id.getDirectionsButton)
         getPlaceInfoButton = rootView.findViewById(R.id.getPlaceInfoButton)
 
+        directionsRouteLayout = rootView.findViewById(R.id.directions_route_layout)
+        directionsRouteInfoLayout = rootView.findViewById(R.id.directions_route_info_layout)
         routeSummaryLayout = rootView.findViewById(R.id.routeSummaryLayout)
         directionsStart = rootView.findViewById(R.id.directions_start)
         directionsEnd = rootView.findViewById(R.id.directions_end)
@@ -1209,9 +1215,24 @@ class MapActivity : AppCompatActivity() {
                 "${(selectedRoute.distance()).toInt()} ${metersFormat}" // Lebih akurat untuk meter asli
         }
 
+        val orientation = resources.configuration.orientation
+        when (orientation) {
+            Configuration.ORIENTATION_LANDSCAPE -> {
+                if (isDirectionsRoute) {
+                    padding = intArrayOf((directionsRouteLayout.height+78), 78, 78, 78)
+                }
+            }
+            Configuration.ORIENTATION_PORTRAIT -> {
+                if (isDirectionsRoute) {
+                    padding = intArrayOf(78, (directionsRouteLayout.height+67), 78, (directionsRouteInfoLayout.height+67))
+                }
+            } else -> {
+
+            }
+        }
+
         // Gerakkan kamera fokus ke rute terpilih
         getRouteBounds(selectedRoute)?.let { routeBounds ->
-            val padding = intArrayOf(350, 350, 350, 350)
             mapboxMap.getCameraForLatLngBounds(routeBounds, padding)?.let { cameraPosition ->
                 mapboxMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 1500)
             }
@@ -1703,6 +1724,8 @@ class MapActivity : AppCompatActivity() {
 
     internal val backToLocationOnMapInfo = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
+            mapboxMap.setPadding(0, 0, 0, 0)
+
             navigationMapRoute?.removeRoute()
             mapboxMap.removeMarker(marker)
             routeRestoredList.clear()
@@ -1749,6 +1772,7 @@ class MapActivity : AppCompatActivity() {
     }
 
     fun cancelNavigationRoute() {
+        mapboxMap.setPadding(0, 0, 0, 0)
         toggleLocationSource(false)
         isSimulationMode = false
         navigation.removeOffRouteListener(offRouteListener)
@@ -1797,6 +1821,12 @@ class MapActivity : AppCompatActivity() {
         removeBackToLocationOnMapInfo()
         removeBackToSearchMap()
         removeBackToMap()
+
+        if (isDataVisible) {
+            saveStatus(true)
+        } else {
+            saveStatus(false)
+        }
 
         onBackPressedDispatcher.addCallback(closeThisNavMapsApp)
     }
