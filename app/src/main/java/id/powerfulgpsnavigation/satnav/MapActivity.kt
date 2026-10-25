@@ -162,10 +162,10 @@ class MapActivity : AppCompatActivity() {
     private var pRight: Int = 0
     private var pBottom: Int = 0
 
-    private var layoutLeft: Int = 0
-    private var layoutRight: Int = 0
-    private var layoutTop: Int = 0
-    private var layoutBottom: Int = 0
+    internal var layoutLeft: Int = 0
+    internal var layoutRight: Int = 0
+    internal var layoutTop: Int = 0
+    internal var layoutBottom: Int = 0
 
     private lateinit var locationRequest: LocationEngineRequest
 
@@ -644,6 +644,12 @@ class MapActivity : AppCompatActivity() {
                                     locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                                 }
                             }
+
+                            if (isDataVisible) {
+                                saveStatus(true)
+                            } else {
+                                saveStatus(false)
+                            }
                         } else {
                             route = navigationViewModel.currentRoute.value!!
                             navigationlocation = navigationViewModel.currentLocation.value!!
@@ -661,6 +667,12 @@ class MapActivity : AppCompatActivity() {
                                     navigation.addProgressChangeListener(navigationProgressChangeListener)
                                     locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                                 }
+                            }
+
+                            if (isDataVisible) {
+                                saveStatus(true)
+                            } else {
+                                saveStatus(false)
                             }
                         }
                     }
@@ -1228,8 +1240,6 @@ class MapActivity : AppCompatActivity() {
         routeSummaryLayout.visibility = View.GONE
         navigationTurnByTurnUI.visibility = View.VISIBLE
 
-        saveStatus(true)
-
         val currentDemoLocationEngine = demoLocationEngine
 
         if (currentDemoLocationEngine != null) {
@@ -1255,8 +1265,6 @@ class MapActivity : AppCompatActivity() {
     fun startNavigationRoute() {
         routeSummaryLayout.visibility = View.GONE
         navigationTurnByTurnUI.visibility = View.VISIBLE
-
-        saveStatus(true)
 
         val currentLocationEngine = navigationLocationEngine
 
