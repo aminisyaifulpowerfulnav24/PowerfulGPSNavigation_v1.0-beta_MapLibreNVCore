@@ -210,7 +210,7 @@ class MapActivity : AppCompatActivity() {
     internal var savedPlaceList: ArrayList<GeocodeResponse>? = null
 
 
-    private var searchLayoutUIStatus: Boolean = false
+    internal var locationSelectedOnMapUIStatus: Boolean = false
 
     private lateinit var locationInfoLayout: View
     private lateinit var textLocationName: TextView
@@ -555,6 +555,7 @@ class MapActivity : AppCompatActivity() {
 
                 // Ambil kembali statusnya
                 isLocationSelected = savedInstanceState.getBoolean(KEY_HAS_SELECTION, false)
+                locationSelectedOnMapUIStatus = savedInstanceState.getBoolean("KEY_LOCATION_SELECTED_ON_MAP_INFO")
 
                 // Jika true (artinya rotasi terjadi SAAT lokasi terpilih, BUKAN setelah klik back)
                 if (isLocationSelected) {
@@ -567,8 +568,6 @@ class MapActivity : AppCompatActivity() {
                 }
 
                 isDirectionsRoute = savedInstanceState.getBoolean(KEY_ROUTE_SUMMARY, false)
-
-                savedRouteListJson = savedInstanceState.getString("SAVED_ROUTES") ?: ""
 
                 if (isDirectionsRoute) {
                     originLat = savedInstanceState.getDouble(KEY_ROUTE_START_LAT)
@@ -586,6 +585,8 @@ class MapActivity : AppCompatActivity() {
                     currentRouteIndex = savedInstanceState.getInt("KEY_CURRENT_ROUTE_INDEX", 0)
 
                     routingResponse()
+
+                    savedRouteListJson = savedInstanceState.getString("SAVED_ROUTES") ?: ""
 
                     if (savedRouteListJson.isNotEmpty()) {
                         try {
@@ -625,59 +626,62 @@ class MapActivity : AppCompatActivity() {
                 navigationlocation?.speed = savedInstanceState.getFloat("NAVIGATION_LOC_SPEED")
                 navigationlocation?.bearing = savedInstanceState.getFloat("NAVIGATION_LOC_BEARING")
 
-                if (!routeList.isNullOrEmpty()) {
+                if (isNavigationTurnByTurnMode) {
                     routeList = navigationViewModel.currentRouteAlt.value!!
 
                     navigationMapRoute?.addRoutes(routeList)
 
-                    if (isNavigationTurnByTurnMode) {
+                    if (!isSimulationMode) {
+                        route = navigationViewModel.currentRoute.value!!
+                        navigationlocation = navigationViewModel.currentLocation.value!!
+                        navigation = navigationViewModel.navigationTurnByTurnData.value!!
+                        navigationLocationEngine = navigationViewModel.navigationLocationEngine.value!!
 
-                        if (!isSimulationMode) {
-                            route = navigationViewModel.currentRoute.value!!
-                            navigationlocation = navigationViewModel.currentLocation.value
-                            navigation = navigationViewModel.navigationTurnByTurnData.value!!
-                            navigationLocationEngine = navigationViewModel.navigationLocationEngine.value!!
+                        startNavigationRoute()
 
-                            startNavigationRoute()
-
-                            navigationLocationEngine.let { navigationEngine ->
-                                navigation.let {
-                                    it.locationEngine = navigationEngine!!
-                                    it.startNavigation(route)
-                                    it.addProgressChangeListener(navigationProgressChangeListener)
-                                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
-                                }
+                        navigationLocationEngine.let { navigationEngine ->
+                            navigation.let {
+                                it.locationEngine = navigationEngine!!
+                                it.startNavigation(route)
+                                it.addProgressChangeListener(navigationProgressChangeListener)
+                                locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                             }
+                        }
 
-                            if (isDataVisible) {
-                                saveStatus(true)
-                            } else {
-                                saveStatus(false)
-                            }
+                        if (isDataVisible) {
+                            saveStatus(true)
                         } else {
-                            route = navigationViewModel.currentRoute.value!!
-                            navigationlocation = navigationViewModel.currentLocation.value
-                            navigation = navigationViewModel.navigationTurnByTurnData.value!!
-                            demoLocationEngine = navigationViewModel.replayRouteLocationEngine.value!!
+                            saveStatus(false)
+                            routeOverview.visibility = View.INVISIBLE
+                            routeNavigationCurrentSpeed.visibility = View.INVISIBLE
+                            btnRecenterPosition.visibility = View.VISIBLE
+                        }
+                    } else {
+                        route = navigationViewModel.currentRoute.value!!
+                        navigationlocation = navigationViewModel.currentLocation.value!!
+                        navigation = navigationViewModel.navigationTurnByTurnData.value!!
+                        demoLocationEngine = navigationViewModel.replayRouteLocationEngine.value!!
 
-                            startSimulationRoute()
+                        startSimulationRoute()
 
-                            demoLocationEngine.let {
-                                navigation.let { navigation ->
-                                    it.updateSpeed(demoLocationSpeed)
-                                    it.assign(route)
-                                    navigation.locationEngine = it
-                                    navigation.startNavigation(route)
-                                    navigation.addProgressChangeListener(navigationProgressChangeListener)
-                                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
-                                }
+                        demoLocationEngine.let {
+                            navigation.let { navigation ->
+                                it.updateSpeed(demoLocationSpeed)
+                                it.assign(route)
+                                navigation.locationEngine = it
+                                navigation.startNavigation(route)
+                                navigation.addProgressChangeListener(navigationProgressChangeListener)
+                                locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                             }
+                        }
 
-                            if (isDataVisible) {
-                                saveStatus(true)
-                            } else {
-                                saveStatus(false)
-                            }
+                        if (isDataVisible) {
+                            saveStatus(true)
+                        } else {
+                            saveStatus(false)
+                            routeOverview.visibility = View.INVISIBLE
+                            routeNavigationCurrentSpeed.visibility = View.INVISIBLE
+                            btnRecenterPosition.visibility = View.VISIBLE
                         }
                     }
                 }
@@ -875,8 +879,7 @@ class MapActivity : AppCompatActivity() {
                         "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
                 }
             } else if (isNavigationTurnByTurnMode) {
-                lastNavigationLocation = navigationViewModel.currentLocation.value
-                navigationlocation = lastNavigationLocation ?: location
+                navigationlocation = navigationViewModel.currentLocation.value ?: location
 
                 if (::navigation.isInitialized) {
                     runOnUiThread {
@@ -1038,14 +1041,16 @@ class MapActivity : AppCompatActivity() {
             .icon(markerIcon)
         marker = mapboxMap.addMarker(markerOptions)
 
-        mapboxMap.getCameraForLatLngBounds(LatLngBounds.fromLatLngs(bounds))?.let {
-            markerCameraPosition = CameraPosition.Builder()
-                .target(it.target)
-                .zoom(14.0)
-                .bearing(0.0)
-                .tilt(0.0)
-                .build()
-            mapboxMap.cameraPosition = markerCameraPosition
+        if (locationSelectedOnMapUIStatus) {
+            mapboxMap.getCameraForLatLngBounds(LatLngBounds.fromLatLngs(bounds))?.let {
+                markerCameraPosition = CameraPosition.Builder()
+                    .target(it.target)
+                    .zoom(14.0)
+                    .bearing(0.0)
+                    .tilt(0.0)
+                    .build()
+                mapboxMap.cameraPosition = markerCameraPosition
+            }
         }
 
         mapView.visibility = View.VISIBLE
@@ -1388,7 +1393,7 @@ class MapActivity : AppCompatActivity() {
                 directionsEta.text = "${timeNow}"
 
                 runOnUiThread {
-                    navigationlocation = navigationViewModel.currentLocation.value
+                    navigationlocation = navigationViewModel.currentLocation.value!!
                     locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
                     routeNavigationCurrentSpeed.text =
                         "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
@@ -1614,6 +1619,7 @@ class MapActivity : AppCompatActivity() {
         // Simpan nilai isLocationSelected yang sudah disesuaikan (bisa true atau false)
         outState.putBoolean(KEY_SEARCH_UI_STATUS, isSearchUIVisible)
         outState.putBoolean(KEY_HAS_SELECTION, isLocationSelected)
+        outState.putBoolean("KEY_LOCATION_SELECTED_ON_MAP_INFO", locationSelectedOnMapUIStatus)
         outState.putBoolean(KEY_ROUTE_SUMMARY, isDirectionsRoute)
 
         // 1. Simpan status UI & Variabel menggunakan putBoolean
@@ -1783,6 +1789,7 @@ class MapActivity : AppCompatActivity() {
         navigationViewModel.clearRoute()
         navigationViewModel.clearRouteAlt()
         routeRestoredList.clear()
+        savedRouteListJson = ""
         mapboxMap.removeMarker(marker)
         navigation.stopNavigation()
         navigationViewModel.clearNavigationData()

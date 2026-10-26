@@ -18,6 +18,7 @@ fun MapActivity.RouteDirectionsSummary() {
         routingResponse()
 
         isDirectionsRoute = true
+        locationSelectedOnMapUIStatus = false
     }
 
     cancelRouteBtn.setOnClickListener {

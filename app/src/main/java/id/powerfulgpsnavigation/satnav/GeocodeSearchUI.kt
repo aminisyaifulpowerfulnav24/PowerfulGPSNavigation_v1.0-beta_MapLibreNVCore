@@ -112,6 +112,7 @@ fun MapActivity.GeocodeSearchUI() {
         lon = selectedLocation.lon.toDouble()
 
         isLocationSelected = true
+        locationSelectedOnMapUIStatus = true
 
         onLocationResultSelected()
 
