@@ -595,6 +595,10 @@ class MapActivity : AppCompatActivity() {
 
                                 // Masukkan kembali ke variabel global rute Anda
                                 routeList = routeRestoredList
+
+                                if (routeList != null) {
+                                    navigationMapRoute?.addRoutes(routeList)
+                                }
                             }
 
                             Log.d("ROTATION_CHECK", "Semua rute alternatif berhasil dipulihkan.")
@@ -605,10 +609,6 @@ class MapActivity : AppCompatActivity() {
                             )
                         }
                     }
-                }
-
-                if (routeList != null) {
-                    navigationMapRoute?.addRoutes(routeList)
                 }
 
                 // Restore boolean & int
