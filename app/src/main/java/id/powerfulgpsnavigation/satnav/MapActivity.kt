@@ -129,12 +129,14 @@ class MapActivity : AppCompatActivity() {
 
     private var isDataVisible = false
     internal var isSearchUIVisible = false
+    internal var isGeosearchUI = false
     private lateinit var sharedPreferences: SharedPreferences
 
     private var PREF_NAME = "UpdateDataUI"
 
     private var KEY_STATUS = "status"
     private var KEY_SEARCH_UI_STATUS = "searchUIStatus"
+    private var KEY_GEOSEARCH_UI_STATUS = "geosearchUIStatus"
     private var lastPosition: Int = 0
 
     internal lateinit var mapView: MapView
@@ -209,7 +211,6 @@ class MapActivity : AppCompatActivity() {
     internal lateinit var listView: ListView
     internal var savedPlaceList: ArrayList<GeocodeResponse>? = null
 
-
     internal var locationSelectedOnMapUIStatus: Boolean = false
 
     private lateinit var locationInfoLayout: View
@@ -233,9 +234,10 @@ class MapActivity : AppCompatActivity() {
     private lateinit var getPlaceInfoButton: ExtendedFloatingActionButton
 
     internal var isLocationSelected: Boolean = false
+    internal var isLocationSelectedUI: Boolean = false
 
     internal var isDirectionsRoute: Boolean = false
-    private var isRouteSummary: Boolean = false
+    internal var isRouteSummaryUI: Boolean = false
 
     companion object {
         private const val KEY_PLACE_LAT = "saved_location_lat"
@@ -243,8 +245,10 @@ class MapActivity : AppCompatActivity() {
         private const val KEY_PLACE_NAME = "saved_location_name"
         private const val KEY_PLACE_DISPLAY_NAME = "saved_location_display_name"
         private const val KEY_HAS_SELECTION = "saved_location_has_selection"
+        private const val KEY_HAS_SELECTION_UI_STATUS = "location_has_selection_ui"
 
         private const val KEY_ROUTE_SUMMARY = "route_summary"
+        private const val KEY_ROUTE_SUMMARY_UI = "route_summary_ui"
         private const val KEY_ROUTE_START_LAT = "route_start_lat"
         private const val KEY_ROUTE_START_LON = "route_start_lon"
         private const val KEY_ROUTE_END_LAT = "route_end_lat"
@@ -540,21 +544,11 @@ class MapActivity : AppCompatActivity() {
 
             if (savedInstanceState != null) {
                 isSearchUIVisible = savedInstanceState.getBoolean(KEY_SEARCH_UI_STATUS, false)
-
-                if (isSearchUIVisible) {
-                    SearchLayoutUI(
-                        searchLocLayout,
-                        searchLocation,
-                        mapView,
-                        mapButtonUI
-                    ).clickSearch()
-
-                    onBackPressedDispatcher.addCallback(backToMap)
-                    removeCloseThisNavMapsApp()
-                }
+                isGeosearchUI = savedInstanceState.getBoolean(KEY_GEOSEARCH_UI_STATUS, false)
 
                 // Ambil kembali statusnya
                 isLocationSelected = savedInstanceState.getBoolean(KEY_HAS_SELECTION, false)
+                isLocationSelectedUI = savedInstanceState.getBoolean(KEY_HAS_SELECTION_UI_STATUS, false)
                 locationSelectedOnMapUIStatus = savedInstanceState.getBoolean("KEY_LOCATION_SELECTED_ON_MAP_INFO")
 
                 // Jika true (artinya rotasi terjadi SAAT lokasi terpilih, BUKAN setelah klik back)
@@ -568,15 +562,13 @@ class MapActivity : AppCompatActivity() {
                 }
 
                 isDirectionsRoute = savedInstanceState.getBoolean(KEY_ROUTE_SUMMARY, false)
+                isRouteSummaryUI = savedInstanceState.getBoolean(KEY_ROUTE_SUMMARY_UI, false)
 
                 if (isDirectionsRoute) {
                     originLat = savedInstanceState.getDouble(KEY_ROUTE_START_LAT)
                     originLng = savedInstanceState.getDouble(KEY_ROUTE_START_LON)
                     destinationLat = savedInstanceState.getDouble(KEY_ROUTE_END_LAT)
                     destinationLng = savedInstanceState.getDouble(KEY_ROUTE_END_LON)
-
-                    routeDistance.text = savedInstanceState.getString(KEY_ROUTE_DISTANCE)
-                    routeDuration.text = savedInstanceState.getString(KEY_ROUTE_DURATION)
 
                     osrmBaseUrl = savedInstanceState.getString(KEY_ROUTE_BASE_URL) ?: ""
                     vehicle = savedInstanceState.getString(KEY_ROUTE_TRANSPORTATION) ?: ""
@@ -613,6 +605,10 @@ class MapActivity : AppCompatActivity() {
                             )
                         }
                     }
+                }
+
+                if (routeList != null) {
+                    navigationMapRoute?.addRoutes(routeList)
                 }
 
                 // Restore boolean & int
@@ -779,6 +775,57 @@ class MapActivity : AppCompatActivity() {
         btnRecenterPosition = rootView.findViewById(R.id.btnRecenterNavigation)
         btnMuteUnmute = rootView.findViewById(R.id.btn_navigation_voice_mute_unmute)
 
+        if (savedInstanceState != null) {
+            isSearchUIVisible = savedInstanceState.getBoolean(KEY_SEARCH_UI_STATUS, false)
+
+            // Ambil kembali statusnya
+            isLocationSelected = savedInstanceState.getBoolean(KEY_HAS_SELECTION, false)
+
+            isDirectionsRoute = savedInstanceState.getBoolean(KEY_ROUTE_SUMMARY, false)
+
+            isNavigationTurnByTurnMode = savedInstanceState.getBoolean("KEY_IS_TBT_MODE", false)
+
+            if (isSearchUIVisible) {
+                SearchLayoutUI(
+                    searchLocLayout,
+                    searchLocation,
+                    mapView,
+                    mapButtonUI
+                ).clickSearch()
+
+                onBackPressedDispatcher.addCallback(backToMap)
+                removeCloseThisNavMapsApp()
+            }
+
+            if (isLocationSelected) {
+                mapView.visibility = View.VISIBLE
+                mapButtonUI.visibility = View.INVISIBLE
+                locationInfoLayout.visibility = View.VISIBLE
+                backToSearchMapBtn.visibility = View.VISIBLE
+                searchLocLayout.visibility = View.GONE
+            }
+
+            if (isDirectionsRoute) {
+                mapButtonUI.visibility = View.INVISIBLE
+                RouteSummaryUI(
+                    locationInfoLayout,
+                    backToSearchMapBtn,
+                    routeSummaryLayout,
+                    routeTransportationMode,
+                    startNavigationBtn,
+                    routeDistance,
+                    routeDuration,
+                    directionsStart,
+                    directionsEnd
+                ).getDirections()
+            }
+
+            if (isNavigationTurnByTurnMode) {
+                navigationTurnByTurnUI.visibility = View.VISIBLE
+                routeSummaryLayout.visibility = View.INVISIBLE
+            }
+        }
+
         recenterPosition.setOnClickListener {
             if (fineLocationGranted || coarseLocationGranted) {
                 saveStatus(true)
@@ -877,16 +924,6 @@ class MapActivity : AppCompatActivity() {
 
                     speedNavigationInKph.text =
                         "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
-                }
-            } else if (isNavigationTurnByTurnMode) {
-                navigationlocation = navigationViewModel.currentLocation.value ?: location
-
-                if (::navigation.isInitialized) {
-                    runOnUiThread {
-                        locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
-
-                        routeNavigationCurrentSpeed.text = "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
-                    }
                 }
             }
         }
@@ -1053,12 +1090,14 @@ class MapActivity : AppCompatActivity() {
             }
         }
 
-        mapView.visibility = View.VISIBLE
-        locationInfoLayout.visibility = View.VISIBLE
-        backToSearchMapBtn.visibility = View.VISIBLE
-        searchLocLayout.visibility = View.GONE
-
         removeCenteringPosition()
+
+        if (isLocationSelectedUI) {
+            mapView.visibility = View.VISIBLE
+            locationInfoLayout.visibility = View.VISIBLE
+            backToSearchMapBtn.visibility = View.VISIBLE
+            searchLocLayout.visibility = View.GONE
+        }
         backToSearchMapUI()
     }
 
@@ -1104,17 +1143,19 @@ class MapActivity : AppCompatActivity() {
             loadRoutes()
         }
 
-        RouteSummaryUI(
-            locationInfoLayout,
-            backToSearchMapBtn,
-            routeSummaryLayout,
-            routeTransportationMode,
-            startNavigationBtn,
-            routeDistance,
-            routeDuration,
-            directionsStart,
-            directionsEnd
-        ).getDirections()
+        if (isRouteSummaryUI) {
+            RouteSummaryUI(
+                locationInfoLayout,
+                backToSearchMapBtn,
+                routeSummaryLayout,
+                routeTransportationMode,
+                startNavigationBtn,
+                routeDistance,
+                routeDuration,
+                directionsStart,
+                directionsEnd
+            ).getDirections()
+        }
 
         onBackPressedDispatcher.addCallback(backToLocationOnMapInfo)
     }
@@ -1182,7 +1223,7 @@ class MapActivity : AppCompatActivity() {
     }
 
     fun updateRouteSummaryUI() {
-        if (isDirectionsRoute) {
+        if (isRouteSummaryUI) {
             routeTransportationMode.visibility = View.VISIBLE
             routeTransportationCar.backgroundTintList =
                 ContextCompat.getColorStateList(this@MapActivity, R.color.white)
@@ -1248,10 +1289,15 @@ class MapActivity : AppCompatActivity() {
             }
         }
 
-        // Gerakkan kamera fokus ke rute terpilih
-        getRouteBounds(selectedRoute)?.let { routeBounds ->
-            mapboxMap.getCameraForLatLngBounds(routeBounds, padding)?.let { cameraPosition ->
-                mapboxMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 1500)
+        if (isRouteSummaryUI) {
+            // Gerakkan kamera fokus ke rute terpilih
+            getRouteBounds(selectedRoute)?.let { routeBounds ->
+                mapboxMap.getCameraForLatLngBounds(routeBounds, padding)?.let { cameraPosition ->
+                    mapboxMap.animateCamera(
+                        CameraUpdateFactory.newCameraPosition(cameraPosition),
+                        1500
+                    )
+                }
             }
         }
     }
@@ -1538,7 +1584,7 @@ class MapActivity : AppCompatActivity() {
 
     private val offRouteListener = object: OffRouteListener {
         override fun userOffRoute(location: Location?) {
-            navigationlocation = location ?: return
+            navigationlocation = navigationViewModel.currentLocation.value ?: location
 
             if (::navigation.isInitialized) {
                 
@@ -1609,18 +1655,18 @@ class MapActivity : AppCompatActivity() {
         outState.putDouble(KEY_ROUTE_END_LAT, destinationLat)
         outState.putDouble(KEY_ROUTE_END_LON, destinationLng)
 
-        outState.putString(KEY_ROUTE_DISTANCE, routeDistance.text.toString())
-        outState.putString(KEY_ROUTE_DURATION, routeDuration.text.toString())
-
         outState.putString(KEY_ROUTE_BASE_URL, osrmBaseUrl)
         outState.putString(KEY_ROUTE_TRANSPORTATION, vehicle)
         outState.putString(KEY_ROUTE_URL, url)
 
         // Simpan nilai isLocationSelected yang sudah disesuaikan (bisa true atau false)
         outState.putBoolean(KEY_SEARCH_UI_STATUS, isSearchUIVisible)
+        outState.putBoolean(KEY_GEOSEARCH_UI_STATUS, isGeosearchUI)
         outState.putBoolean(KEY_HAS_SELECTION, isLocationSelected)
+        outState.putBoolean(KEY_HAS_SELECTION_UI_STATUS, isLocationSelectedUI)
         outState.putBoolean("KEY_LOCATION_SELECTED_ON_MAP_INFO", locationSelectedOnMapUIStatus)
         outState.putBoolean(KEY_ROUTE_SUMMARY, isDirectionsRoute)
+        outState.putBoolean(KEY_ROUTE_SUMMARY_UI, isRouteSummaryUI)
 
         // 1. Simpan status UI & Variabel menggunakan putBoolean
         outState.putBoolean("KEY_NAV_STARTED", isNavigating)
@@ -1671,11 +1717,13 @@ class MapActivity : AppCompatActivity() {
         }
 
         if (isSearchUIVisible) {
-            SearchLayoutUI(searchLocLayout, searchLocation, mapView, mapButtonUI).clickSearch()
-
-            onBackPressedDispatcher.addCallback(backToMap)
-            removeCloseThisNavMapsApp()
+            if (isGeosearchUI) {
+                SearchLayoutUI(searchLocLayout, searchLocation, mapView, mapButtonUI).clickSearch()
+            }
         }
+
+        onBackPressedDispatcher.addCallback(backToMap)
+        removeCloseThisNavMapsApp()
 
         super.onRestoreInstanceState(savedInstanceState)
     }
@@ -1700,6 +1748,7 @@ class MapActivity : AppCompatActivity() {
         override fun handleOnBackPressed() {
             SearchLayoutUI(searchLocLayout, searchLocation, mapView, mapButtonUI).backToMap()
             isSearchUIVisible = false
+            isGeosearchUI = false
             val inputMethodManager =
                 getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             inputMethodManager.hideSoftInputFromWindow(searchLocation.windowToken, 0)
@@ -1721,7 +1770,10 @@ class MapActivity : AppCompatActivity() {
                 textLocationCoordinates,
                 backToSearchMapBtn
             ).backToSearchLoc()
+
+            isGeosearchUI = true
             isLocationSelected = false
+            isLocationSelectedUI = false
 
             if (::marker.isInitialized && marker != null) {
                 mapboxMap.removeMarker(marker)
@@ -1733,6 +1785,11 @@ class MapActivity : AppCompatActivity() {
 
     internal val backToLocationOnMapInfo = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
+            isLocationSelectedUI = true
+            locationSelectedOnMapUIStatus = true
+            isDirectionsRoute = false
+            isRouteSummaryUI = false
+
             mapboxMap.setPadding(0, 0, 0, 0)
 
             navigationMapRoute?.removeRoute()
@@ -1747,6 +1804,8 @@ class MapActivity : AppCompatActivity() {
                 this@MapActivity,
                 com.mapbox.services.android.navigation.ui.v5.R.color.md_grey_700
             )
+
+            routeSimulationBtn.visibility = View.INVISIBLE
 
             RouteSummaryUI(
                 locationInfoLayout,
@@ -1763,8 +1822,6 @@ class MapActivity : AppCompatActivity() {
             onLocationResultSelected()
 
             removeBackToLocationOnMapInfo()
-
-            isDirectionsRoute = false
         }
     }
 

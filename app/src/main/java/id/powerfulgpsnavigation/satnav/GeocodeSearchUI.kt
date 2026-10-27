@@ -18,6 +18,7 @@ import java.net.URL
 fun MapActivity.GeocodeSearchUI() {
     searchMapButton.setOnClickListener {
         isSearchUIVisible = true
+        isGeosearchUI = true
         SearchLayoutUI(searchLocLayout, searchLocation, mapView, mapButtonUI).clickSearch()
 
         onBackPressedDispatcher.addCallback(backToMap)
@@ -101,6 +102,12 @@ fun MapActivity.GeocodeSearchUI() {
     })
 
     listView.setOnItemClickListener { parent, view, position, id ->
+
+        isGeosearchUI = false
+        isLocationSelected = true
+        isLocationSelectedUI = true
+        locationSelectedOnMapUIStatus = true
+
         saveStatus(false)
         removeCenteringPosition()
         onMovingMap()
@@ -110,9 +117,6 @@ fun MapActivity.GeocodeSearchUI() {
         displayName = selectedLocation.display_name
         lat = selectedLocation.lat.toDouble()
         lon = selectedLocation.lon.toDouble()
-
-        isLocationSelected = true
-        locationSelectedOnMapUIStatus = true
 
         onLocationResultSelected()
 

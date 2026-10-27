@@ -8,7 +8,8 @@
     android:background="@color/md_grey_900"
     android:clickable="true"
     android:focusable="true"
-    android:focusableInTouchMode="true">
+    android:focusableInTouchMode="true"
+    android:fitsSystemWindows="true">
 
     <TextView
         android:id="@+id/text_location_name_bar"

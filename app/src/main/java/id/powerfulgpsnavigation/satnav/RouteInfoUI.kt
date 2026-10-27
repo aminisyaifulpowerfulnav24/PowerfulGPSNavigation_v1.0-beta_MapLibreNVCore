@@ -4,6 +4,11 @@ import com.mapbox.geojson.Point
 
 fun MapActivity.RouteDirectionsSummary() {
     getDirectionsButton.setOnClickListener {
+        isDirectionsRoute = true
+        isRouteSummaryUI = true
+        isLocationSelectedUI = false
+        locationSelectedOnMapUIStatus = false
+
         originLocation = mapboxMap.locationComponent.lastKnownLocation!!
 
         originLat = originLocation.latitude
@@ -16,9 +21,6 @@ fun MapActivity.RouteDirectionsSummary() {
         destination = Point.fromLngLat(destinationLng, destinationLat)
 
         routingResponse()
-
-        isDirectionsRoute = true
-        locationSelectedOnMapUIStatus = false
     }
 
     cancelRouteBtn.setOnClickListener {
@@ -26,21 +28,23 @@ fun MapActivity.RouteDirectionsSummary() {
     }
 
     routeSimulationBtn.setOnClickListener {
+        isRouteSummaryUI = false
+        isNavigationTurnByTurnMode = true
+        isNavigating = true
         saveStatus(true)
         navigationViewModel.setNavigationData(navigation)
         navigationViewModel.setDemoNavigationEngine(demoLocationEngine)
-        isNavigationTurnByTurnMode = true
-        isNavigating = true
         toggleLocationSource(true)
         startSimulationRoute()
     }
 
     startNavigationBtn.setOnClickListener {
+        isRouteSummaryUI = false
+        isNavigationTurnByTurnMode = true
+        isNavigating = true
         saveStatus(true)
         navigationViewModel.setNavigationData(navigation)
         navigationViewModel.setNavigationEngine(navigationLocationEngine!!)
-        isNavigationTurnByTurnMode = true
-        isNavigating = true
         toggleLocationSource(false)
         startNavigationRoute()
     }
