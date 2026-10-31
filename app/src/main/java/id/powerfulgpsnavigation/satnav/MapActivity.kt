@@ -474,7 +474,7 @@ class MapActivity : AppCompatActivity() {
                             object : OnLocationCameraTransitionListener {
                                 override fun onLocationCameraTransitionFinished(cameraMode: Int) {
                                     locationComponent?.zoomWhileTracking(16.24, 1000)
-                                    locationComponent?.tiltWhileTracking(55.0)
+                                    locationComponent?.tiltWhileTracking(48.0)
 
                                     val orientation = resources.configuration.orientation
                                     density = resources.displayMetrics.density
@@ -669,11 +669,11 @@ class MapActivity : AppCompatActivity() {
 
                             navigationLocationEngine = navigationViewModel.navigationLocationEngine.value!!
 
-                            lastLegIndex = navigationViewModel.lastLegIndex.value!!
-                            lastStepIndex = navigationViewModel.lastStepIndex.value!!
-                            distanceRemaining = navigationViewModel.lastDistanceRemaining.value!!
+                            lastLegIndex = navigationViewModel.lastLegIndex.value ?: 0
+                            lastStepIndex = navigationViewModel.lastStepIndex.value ?: 0
+                            distanceRemaining = navigationViewModel.lastDistanceRemaining.value ?: 0.0
 
-                            lastNavigationLocation = navigationViewModel.currentLocation.value!!
+                            lastNavigationLocation = navigationViewModel.currentLocation.value ?: navigationlocation
 
                             startNavigationRoute()
 
@@ -685,10 +685,11 @@ class MapActivity : AppCompatActivity() {
                                         it.addProgressChangeListener(
                                             navigationProgressChangeListener
                                         )
-                                        locationSmoothAnimator?.animateToNewLocation(lastNavigationLocation!!)
                                     }
                                 }
                             }
+
+                            locationSmoothAnimator?.animateToNewLocation(lastNavigationLocation!!)
 
                             if (isDataVisible) {
                                 saveStatus(true)
@@ -706,11 +707,11 @@ class MapActivity : AppCompatActivity() {
 
                             demoLocationEngine = navigationViewModel.replayRouteLocationEngine.value!!
 
-                            lastLegIndex = navigationViewModel.lastLegIndex.value!!
-                            lastStepIndex = navigationViewModel.lastStepIndex.value!!
-                            distanceRemaining = navigationViewModel.lastDistanceRemaining.value!!
+                            lastLegIndex = navigationViewModel.lastLegIndex.value ?: 0
+                            lastStepIndex = navigationViewModel.lastStepIndex.value ?: 0
+                            distanceRemaining = navigationViewModel.lastDistanceRemaining.value ?: 0.0
 
-                            lastNavigationLocation = navigationViewModel.currentLocation.value!!
+                            lastNavigationLocation = navigationViewModel.currentLocation.value ?: navigationlocation
 
                             startSimulationRoute()
 
@@ -723,9 +724,10 @@ class MapActivity : AppCompatActivity() {
                                     navigation.addProgressChangeListener(
                                         navigationProgressChangeListener
                                     )
-                                    locationSmoothAnimator?.animateToNewLocation(lastNavigationLocation!!)
                                 }
                             }
+
+                            locationSmoothAnimator?.animateToNewLocation(lastNavigationLocation!!)
 
                             if (isDataVisible) {
                                 saveStatus(true)
@@ -982,6 +984,8 @@ class MapActivity : AppCompatActivity() {
                     speedNavigationInKph.text =
                         "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
                 }
+            } else {
+                navigationlocation = navigationViewModel.currentLocation.value ?: location
             }
         }
     }
@@ -1024,7 +1028,7 @@ class MapActivity : AppCompatActivity() {
                 object : OnLocationCameraTransitionListener {
                     override fun onLocationCameraTransitionFinished(cameraMode: Int) {
                         locationComponent?.zoomWhileTracking(16.24)
-                        locationComponent?.tiltWhileTracking(55.0)
+                        locationComponent?.tiltWhileTracking(48.0)
 
                         val orientation = resources.configuration.orientation
                         density = resources.displayMetrics.density
@@ -1445,7 +1449,11 @@ class MapActivity : AppCompatActivity() {
 
         lastRouteProgress = routeProgress
 
+        navigationViewModel.updateLastRouteProgress(lastRouteProgress)
+
         lastNavigationLocation = location ?: return@ProgressChangeListener
+
+        navigationViewModel.updateLocation(lastNavigationLocation!!)
 
         // Inisialisasi sekali di onCreate()
         val maneuverBannerManager = ManeuverBannerManager(
@@ -1469,9 +1477,7 @@ class MapActivity : AppCompatActivity() {
 
             if (isNavigationTurnByTurnMode) {
 
-                navigationViewModel.updateLastRouteProgress(lastRouteProgress)
-
-                lastRouteProgress = navigationViewModel.lastRouteProgress.value!!
+                lastRouteProgress = navigationViewModel.lastRouteProgress.value ?: routeProgress
 
                 legProgress = lastRouteProgress.currentLegProgress() ?: return@ProgressChangeListener
                 stepProgress = legProgress.currentStepProgress() ?: return@ProgressChangeListener
@@ -1484,20 +1490,20 @@ class MapActivity : AppCompatActivity() {
                 navigationViewModel.setLastStepIndex(lastStepIndex)
                 navigationViewModel.setLastDistanceRemaining(distanceRemaining)
 
-                distanceRemaining = navigationViewModel.lastDistanceRemaining.value!!
-                lastLegIndex = navigationViewModel.lastLegIndex.value!!
-                lastStepIndex = navigationViewModel.lastStepIndex.value!!
+                distanceRemaining = navigationViewModel.lastDistanceRemaining.value ?: 0.0
+                lastLegIndex = navigationViewModel.lastLegIndex.value ?: 0
+                lastStepIndex = navigationViewModel.lastStepIndex.value ?: 0
 
                 lastRouteProgress.legIndex().let {
-                    navigationViewModel.lastLegIndex.value ?: lastLegIndex
+                    navigationViewModel.lastLegIndex.value ?: 0
                 }
 
                 lastRouteProgress.currentLegProgress().stepIndex().let {
-                    navigationViewModel.lastStepIndex.value ?: lastStepIndex
+                    navigationViewModel.lastStepIndex.value ?: 0
                 }
 
                 lastRouteProgress.distanceRemaining().let {
-                    navigationViewModel.lastDistanceRemaining.value ?: distanceRemaining
+                    navigationViewModel.lastDistanceRemaining.value ?: 0.0
                 }
 
                 // 1. Ambil data tipe belokan (modifier) langsung dari rute OSRM
@@ -1546,13 +1552,12 @@ class MapActivity : AppCompatActivity() {
                 directionsEta.text = "${timeNow}"
 
                 runOnUiThread {
+                    lastNavigationLocation = navigationViewModel.currentLocation.value ?: location
                     locationSmoothAnimator?.animateToNewLocation(
                         lastNavigationLocation!!
                     )
                     routeNavigationCurrentSpeed.text =
                         "${(lastNavigationLocation!!.speed * 3.6).toInt()}      km/h"
-
-                    navigationViewModel.updateLocation(lastNavigationLocation!!)
                 }
 
                 val targetStep = nextStep
@@ -1630,7 +1635,7 @@ class MapActivity : AppCompatActivity() {
 
                 // 5. PEMICU SUARA ADAPTIF & DINAMIS (Berdasarkan Kecepatan Nyata Kendaraan)
                 if (announcement.isNotEmpty()) {
-                    lastNavigationLocation = navigationViewModel.currentLocation.value
+                    lastNavigationLocation = navigationViewModel.currentLocation.value ?: location
 
                     // Ambil kecepatan saat ini dalam m/s (meter per detik) dari objek location Anda
                     // Jika location null, berikan default kecepatan kota standar 30 km/jam (~8.3 m/s)
@@ -1918,6 +1923,7 @@ class MapActivity : AppCompatActivity() {
     }
 
     fun cancelNavigationRoute() {
+        routeSimulationBtn.visibility = View.INVISIBLE
         mapboxMap.setPadding(0, 0, 0, 0)
         toggleLocationSource(false)
         isSimulationMode = false

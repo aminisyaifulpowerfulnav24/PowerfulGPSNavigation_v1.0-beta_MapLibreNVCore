@@ -60,7 +60,7 @@ class GentleNavigationSpeaker(private val context: Context) : TextToSpeech.OnIni
 
         // SOLUSI: Bungkus parameter audio ke dalam Bundle agar dipaksa keluar ke speaker media
         val ttsParams = Bundle().apply {
-            putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC)
+            putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
         }
 
         // Jalankan pemutar suara dengan Bundle parameter yang valid

@@ -32,17 +32,17 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
     val currentRoute: LiveData<DirectionsRoute> = _currentRoute
 
     // Data lokasi real-time menggunakan LiveData biasa (non-persisted)
-    private val _currentLocation: MutableLiveData<Location> = savedStateHandle.getLiveData("CURRENT_LOCATION")
+    private val _currentLocation = MutableLiveData<Location>()
 
     var currentLocation: LiveData<Location> = _currentLocation
 
     private val _onNavigationRouteProgress = MutableLiveData<ProgressChangeListener>()
     var onNavigationRouteProgress: LiveData<ProgressChangeListener> = _onNavigationRouteProgress
 
-    private val _lastLegIndex = savedStateHandle.getLiveData("LAST_LEG_INDEX", -1)
+    private val _lastLegIndex = MutableLiveData<Int>()
     var lastLegIndex: LiveData<Int> = _lastLegIndex
 
-    private val _lastStepIndex = savedStateHandle.getLiveData("LAST_STEP_INDEX", -1)
+    private val _lastStepIndex = MutableLiveData<Int>()
     var lastStepIndex: LiveData<Int> = _lastStepIndex
 
     private val _lastCurrentStep = MutableLiveData<LegStep>()
@@ -54,7 +54,7 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
     private val _lastLegProgress = MutableLiveData<RouteLegProgress>()
     var lastLegProgress: LiveData<RouteLegProgress> = _lastLegProgress
 
-    private val _lastDistanceRemaining: MutableLiveData<Double> = savedStateHandle.getLiveData("LAST_DISTANCE_REMAINING", 0.0)
+    private val _lastDistanceRemaining = MutableLiveData<Double>()
     var lastDistanceRemaining: LiveData<Double> = _lastDistanceRemaining
 
     private val _lastRouteProgress = MutableLiveData<RouteProgress>()
@@ -141,19 +141,19 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
     }
 
     fun setLastStepIndex(index: Int) {
-        savedStateHandle["LAST_STEP_INDEX"] = index
+        _lastStepIndex.value = index
     }
 
     fun clearLastStepIndex() {
-        savedStateHandle.remove<Int>("LAST_STEP_INDEX")
+        _lastStepIndex.value = null
     }
 
     fun setLastLegIndex(index: Int) {
-        savedStateHandle["LAST_LEG_INDEX"] = index
+        _lastLegIndex.value = index
     }
 
     fun clearLastLegIndex() {
-        savedStateHandle.remove<Int>("LAST_LEG_INDEX")
+        _lastLegIndex.value = null
     }
 
     fun setLastCurrentStep(step: LegStep) {
@@ -181,11 +181,11 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
     }
 
     fun setLastDistanceRemaining(distance: Double) {
-        savedStateHandle["LAST_DISTANCE_REMAINING"] = distance
+        _lastDistanceRemaining.value = distance
     }
 
     fun clearLastDistanceRemaining() {
-        savedStateHandle.remove<Double>("LAST_DISTANCE_REMAINING")
+        _lastDistanceRemaining.value = null
     }
 
     fun setNavigatingStatus(isNavigating: Boolean) {
@@ -197,10 +197,10 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
     }
 
     fun updateLocation(location: Location) {
-        savedStateHandle["CURRENT_LOCATION"] = location
+        _currentLocation.value = location
     }
 
     fun clearLocationData() {
-        savedStateHandle.remove<Location>("CURRENT_LOCATION")
+        _currentLocation.value = null
     }
 }
