@@ -1,5 +1,6 @@
 package id.powerfulgpsnavigation.satnav
 
+import android.content.Context
 import android.location.Location
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -10,8 +11,12 @@ import com.mapbox.mapboxsdk.maps.MapView
 import com.mapbox.mapboxsdk.maps.MapboxMap
 import com.mapbox.services.android.navigation.v5.location.replay.ReplayRouteLocationEngine
 import com.mapbox.services.android.navigation.v5.models.DirectionsRoute
+import com.mapbox.services.android.navigation.v5.models.LegStep
 import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigation
 import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigationOptions
+import com.mapbox.services.android.navigation.v5.routeprogress.ProgressChangeListener
+import com.mapbox.services.android.navigation.v5.routeprogress.RouteLegProgress
+import com.mapbox.services.android.navigation.v5.routeprogress.RouteProgress
 
 class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel() {
     private val _navigationLocationEngine = MutableLiveData<LocationEngine>()
@@ -27,15 +32,63 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
     val currentRoute: LiveData<DirectionsRoute> = _currentRoute
 
     // Data lokasi real-time menggunakan LiveData biasa (non-persisted)
-    private val _currentLocation = MutableLiveData<Location>()
+    private val _currentLocation: MutableLiveData<Location> = savedStateHandle.getLiveData("CURRENT_LOCATION")
 
     var currentLocation: LiveData<Location> = _currentLocation
+
+    private val _onNavigationRouteProgress = MutableLiveData<ProgressChangeListener>()
+    var onNavigationRouteProgress: LiveData<ProgressChangeListener> = _onNavigationRouteProgress
+
+    private val _lastLegIndex = savedStateHandle.getLiveData("LAST_LEG_INDEX", -1)
+    var lastLegIndex: LiveData<Int> = _lastLegIndex
+
+    private val _lastStepIndex = savedStateHandle.getLiveData("LAST_STEP_INDEX", -1)
+    var lastStepIndex: LiveData<Int> = _lastStepIndex
+
+    private val _lastCurrentStep = MutableLiveData<LegStep>()
+    var lastCurrentStep: LiveData<LegStep> = _lastCurrentStep
+
+    private val _lastNextStep = MutableLiveData<LegStep?>()
+    var lastNextStep: LiveData<LegStep?> = _lastNextStep
+
+    private val _lastLegProgress = MutableLiveData<RouteLegProgress>()
+    var lastLegProgress: LiveData<RouteLegProgress> = _lastLegProgress
+
+    private val _lastDistanceRemaining: MutableLiveData<Double> = savedStateHandle.getLiveData("LAST_DISTANCE_REMAINING", 0.0)
+    var lastDistanceRemaining: LiveData<Double> = _lastDistanceRemaining
+
+    private val _lastRouteProgress = MutableLiveData<RouteProgress>()
+    var lastRouteProgress: LiveData<RouteProgress> = _lastRouteProgress
 
     // Simpan status apakah sedang navigasi turn-by-turn
     val isNavigating: LiveData<Boolean> = savedStateHandle.getLiveData("IS_NAVIGATING", false)
 
     var _navigationTurnByTurnData = MutableLiveData<MapboxNavigation>()
     var navigationTurnByTurnData: LiveData<MapboxNavigation> = _navigationTurnByTurnData
+
+    private var mapboxNavigationInstance: MapboxNavigation? = null
+
+    fun getOrCreateNavigation(context: Context): MapboxNavigation {
+        if (mapboxNavigationInstance == null) {
+            val options = MapboxNavigationOptions.builder()
+                .snapToRoute(true)
+                .enableOffRouteDetection(true)
+                .minimumDistanceBeforeRerouting(20.0)
+                .secondsBeforeReroute(3)
+                .enableFasterRouteDetection(true)
+                .userLocationSnapDistance(25.0)
+                .defaultMilestonesEnabled(false)
+                .build()
+            mapboxNavigationInstance = MapboxNavigation(context.applicationContext, options)
+        }
+        return mapboxNavigationInstance!!
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        mapboxNavigationInstance?.onDestroy()
+        mapboxNavigationInstance = null
+    }
 
     fun setNavigationEngine(navigationLocationEngine: LocationEngine) {
         _navigationLocationEngine.value = navigationLocationEngine
@@ -71,15 +124,83 @@ class NavigationViewModel(private val savedStateHandle: SavedStateHandle) : View
         _navigationTurnByTurnData.value = null
     }
 
-    fun clearLocationData() {
-        _currentLocation.value = null
+    fun setOnNavigationRouteProgress(listener: ProgressChangeListener) {
+        _onNavigationRouteProgress.value = listener
+    }
+
+    fun clearOnNavigationRouteProgress() {
+        _onNavigationRouteProgress.value = null
+    }
+
+    fun updateLastRouteProgress(progress: RouteProgress) {
+        _lastRouteProgress.value = progress
+    }
+
+    fun clearLastRouteProgress() {
+        _lastRouteProgress.value = null
+    }
+
+    fun setLastStepIndex(index: Int) {
+        savedStateHandle["LAST_STEP_INDEX"] = index
+    }
+
+    fun clearLastStepIndex() {
+        savedStateHandle.remove<Int>("LAST_STEP_INDEX")
+    }
+
+    fun setLastLegIndex(index: Int) {
+        savedStateHandle["LAST_LEG_INDEX"] = index
+    }
+
+    fun clearLastLegIndex() {
+        savedStateHandle.remove<Int>("LAST_LEG_INDEX")
+    }
+
+    fun setLastCurrentStep(step: LegStep) {
+        _lastCurrentStep.value = step
+    }
+
+    fun clearLastCurrentStep() {
+        _lastCurrentStep.value = null
+    }
+
+    fun setLastNextStep(step: LegStep?) {
+        _lastNextStep.value = step
+    }
+
+    fun clearLastNextStep() {
+        _lastNextStep.value = null
+    }
+
+    fun setLastLegProgress(progress: RouteLegProgress) {
+        _lastLegProgress.value = progress
+    }
+
+    fun clearLastLegProgress() {
+        _lastLegProgress.value = null
+    }
+
+    fun setLastDistanceRemaining(distance: Double) {
+        savedStateHandle["LAST_DISTANCE_REMAINING"] = distance
+    }
+
+    fun clearLastDistanceRemaining() {
+        savedStateHandle.remove<Double>("LAST_DISTANCE_REMAINING")
     }
 
     fun setNavigatingStatus(isNavigating: Boolean) {
         savedStateHandle["IS_NAVIGATING"] = isNavigating
     }
 
+    fun clearNavigatingStatus() {
+        savedStateHandle.remove<Boolean>("IS_NAVIGATING")
+    }
+
     fun updateLocation(location: Location) {
-        _currentLocation.value = location
+        savedStateHandle["CURRENT_LOCATION"] = location
+    }
+
+    fun clearLocationData() {
+        savedStateHandle.remove<Location>("CURRENT_LOCATION")
     }
 }

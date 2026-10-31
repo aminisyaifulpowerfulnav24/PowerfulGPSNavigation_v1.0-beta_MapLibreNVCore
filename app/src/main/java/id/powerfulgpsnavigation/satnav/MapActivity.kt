@@ -63,6 +63,7 @@ import com.mapbox.mapboxsdk.camera.CameraPosition
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
 import com.mapbox.mapboxsdk.geometry.LatLng
 import com.mapbox.mapboxsdk.geometry.LatLngBounds
+import com.mapbox.mapboxsdk.location.CompassEngine
 import com.mapbox.mapboxsdk.location.LocationComponent
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions
 import com.mapbox.mapboxsdk.location.LocationComponentOptions
@@ -86,12 +87,15 @@ import com.mapbox.services.android.navigation.v5.location.engine.LocationEngineP
 import com.mapbox.services.android.navigation.v5.location.replay.ReplayRouteLocationEngine
 import com.mapbox.services.android.navigation.v5.milestone.MilestoneEventListener
 import com.mapbox.services.android.navigation.v5.milestone.VoiceInstructionMilestone
+import com.mapbox.services.android.navigation.v5.models.LegStep
 import com.mapbox.services.android.navigation.v5.models.RouteOptions
 import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigation
 import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigationOptions
 import com.mapbox.services.android.navigation.v5.offroute.OffRouteListener
 import com.mapbox.services.android.navigation.v5.routeprogress.ProgressChangeListener
+import com.mapbox.services.android.navigation.v5.routeprogress.RouteLegProgress
 import com.mapbox.services.android.navigation.v5.routeprogress.RouteProgress
+import com.mapbox.services.android.navigation.v5.routeprogress.RouteStepProgress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -354,7 +358,15 @@ class MapActivity : AppCompatActivity() {
     private var OSRM_VOICE_MILESTONE_ID = 999
 
     // State untuk mencatat indeks langkah terakhir yang suaranya sudah dibacakan
-    private var lastSpokenStepIndex = -1
+    private lateinit var lastRouteProgress: RouteProgress
+    private lateinit var legProgress: RouteLegProgress
+    private lateinit var stepProgress: RouteStepProgress
+    private var lastStepIndex: Int = 0
+    private var lastLegIndex: Int = 0
+    private var distanceRemaining: Double = 0.0
+    private var nextStep: LegStep? = null
+    private lateinit var currentStep: LegStep
+    private var lastManeuverType: String = ""
     // Ganti pengunci lama dengan pengunci berbasis String Trigger Key
     private var lastSpokenTriggerKey = ""
 
@@ -403,19 +415,7 @@ class MapActivity : AppCompatActivity() {
 
         mapView = rootView.findViewById(R.id.naviMapView)
 
-        navigation = MapboxNavigation(
-            this, MapboxNavigationOptions.builder()
-                .snapToRoute(true)
-                .enableOffRouteDetection(true)
-                .minimumDistanceBeforeRerouting(20.0)
-                .secondsBeforeReroute(3)
-                .enableFasterRouteDetection(true)
-                .userLocationSnapDistance(25.0)
-                .defaultMilestonesEnabled(false)
-                .build()
-        ).apply {
-            this.snapEngine
-        }
+        navigation = navigationViewModel.getOrCreateNavigation(this)
 
         mapView.getMapAsync { map ->
 
@@ -476,20 +476,58 @@ class MapActivity : AppCompatActivity() {
                                     locationComponent?.zoomWhileTracking(16.24, 1000)
                                     locationComponent?.tiltWhileTracking(55.0)
 
-                                    if (isNavigationTurnByTurnMode) {
-                                        mapboxMap.setPadding(
-                                            layoutLeft,
-                                            layoutTop,
-                                            layoutRight,
-                                            layoutBottom
-                                        )
-                                    } else if (!isNavigationTurnByTurnMode) {
-                                        mapboxMap.setPadding(
-                                            pLeft,
-                                            (pTop + 120).toInt(),
-                                            pRight,
-                                            pBottom
-                                        )
+                                    val orientation = resources.configuration.orientation
+                                    density = resources.displayMetrics.density
+
+                                    when (orientation) {
+                                        Configuration.ORIENTATION_LANDSCAPE -> {
+                                            if (isNavigationTurnByTurnMode) {
+                                                layoutLeft =
+                                                    (navigationTurnByTurnCardView.width + pLeft + 260)
+                                                layoutBottom = pBottom
+                                                layoutRight = pRight
+                                                layoutTop = (directionsSummaryCardView.height + pTop)
+
+                                                mapboxMap.setPadding(
+                                                    layoutLeft,
+                                                    layoutTop,
+                                                    layoutRight,
+                                                    layoutBottom
+                                                )
+                                            } else if (!isNavigationTurnByTurnMode) {
+                                                mapboxMap.setPadding(
+                                                    pLeft,
+                                                    (pTop + 120).toInt(),
+                                                    pRight,
+                                                    pBottom
+                                                )
+                                            }
+                                        }
+                                        Configuration.ORIENTATION_PORTRAIT -> {
+                                            if (isNavigationTurnByTurnMode) {
+                                                layoutLeft = pLeft
+                                                layoutBottom = pBottom
+                                                layoutRight = pRight
+                                                layoutTop = (pTop + 120)
+
+                                                mapboxMap.setPadding(
+                                                    layoutLeft,
+                                                    layoutTop,
+                                                    layoutRight,
+                                                    layoutBottom
+                                                )
+                                            } else if (!isNavigationTurnByTurnMode) {
+                                                mapboxMap.setPadding(
+                                                    pLeft,
+                                                    (pTop + 120).toInt(),
+                                                    pRight,
+                                                    pBottom
+                                                )
+                                            }
+                                        }
+                                        else -> {
+                                            mapboxMap.setPadding(0, 0, 0, 0)
+                                        }
                                     }
 
                                     mapUiSettings.setCompassEnabled(false)
@@ -597,6 +635,8 @@ class MapActivity : AppCompatActivity() {
                                 routeList = routeRestoredList
 
                                 if (routeList != null) {
+                                    routeList = navigationViewModel.currentRouteAlt.value!!
+
                                     navigationMapRoute?.addRoutes(routeList)
                                 }
                             }
@@ -617,67 +657,84 @@ class MapActivity : AppCompatActivity() {
                 realTimeLocationEnabled = savedInstanceState.getBoolean("KEY_REALTIME_LOC", false)
                 isSimulationMode = savedInstanceState.getBoolean("KEY_SIMULATION_MODE", false)
 
-                navigationlocation?.longitude = savedInstanceState.getDouble("NAVIGATION_LOC_LNG")
-                navigationlocation?.latitude = savedInstanceState.getDouble("NAVIGATION_LOC_LAT")
-                navigationlocation?.speed = savedInstanceState.getFloat("NAVIGATION_LOC_SPEED")
-                navigationlocation?.bearing = savedInstanceState.getFloat("NAVIGATION_LOC_BEARING")
-
                 if (isNavigationTurnByTurnMode) {
-                    routeList = navigationViewModel.currentRouteAlt.value!!
+                    runOnUiThread {
+                        routeList = navigationViewModel.currentRouteAlt.value!!
 
-                    navigationMapRoute?.addRoutes(routeList)
+                        navigationMapRoute?.addRoutes(routeList)
 
-                    if (!isSimulationMode) {
-                        route = navigationViewModel.currentRoute.value!!
-                        navigationlocation = navigationViewModel.currentLocation.value!!
-                        navigation = navigationViewModel.navigationTurnByTurnData.value!!
-                        navigationLocationEngine = navigationViewModel.navigationLocationEngine.value!!
+                        if (!isSimulationMode) {
 
-                        startNavigationRoute()
+                            route = navigationViewModel.currentRoute.value!!
 
-                        navigationLocationEngine.let { navigationEngine ->
-                            navigation.let {
-                                it.locationEngine = navigationEngine!!
-                                it.startNavigation(route)
-                                it.addProgressChangeListener(navigationProgressChangeListener)
-                                locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+                            navigationLocationEngine = navigationViewModel.navigationLocationEngine.value!!
+
+                            lastLegIndex = navigationViewModel.lastLegIndex.value!!
+                            lastStepIndex = navigationViewModel.lastStepIndex.value!!
+                            distanceRemaining = navigationViewModel.lastDistanceRemaining.value!!
+
+                            lastNavigationLocation = navigationViewModel.currentLocation.value!!
+
+                            startNavigationRoute()
+
+                            navigationLocationEngine.let { navigationEngine ->
+                                navigation.let {
+                                    if (navigationEngine != null) {
+                                        it.locationEngine = navigationEngine
+                                        it.startNavigation(route)
+                                        it.addProgressChangeListener(
+                                            navigationProgressChangeListener
+                                        )
+                                        locationSmoothAnimator?.animateToNewLocation(lastNavigationLocation!!)
+                                    }
+                                }
                             }
-                        }
 
-                        if (isDataVisible) {
-                            saveStatus(true)
-                        } else {
-                            saveStatus(false)
-                            routeOverview.visibility = View.INVISIBLE
-                            routeNavigationCurrentSpeed.visibility = View.INVISIBLE
-                            btnRecenterPosition.visibility = View.VISIBLE
-                        }
-                    } else {
-                        route = navigationViewModel.currentRoute.value!!
-                        navigationlocation = navigationViewModel.currentLocation.value!!
-                        navigation = navigationViewModel.navigationTurnByTurnData.value!!
-                        demoLocationEngine = navigationViewModel.replayRouteLocationEngine.value!!
-
-                        startSimulationRoute()
-
-                        demoLocationEngine.let {
-                            navigation.let { navigation ->
-                                it.updateSpeed(demoLocationSpeed)
-                                it.assign(route)
-                                navigation.locationEngine = it
-                                navigation.startNavigation(route)
-                                navigation.addProgressChangeListener(navigationProgressChangeListener)
-                                locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+                            if (isDataVisible) {
+                                saveStatus(true)
+                            } else {
+                                saveStatus(false)
+                                routeOverview.visibility = View.INVISIBLE
+                                routeNavigationCurrentSpeed.visibility = View.INVISIBLE
+                                btnRecenterPosition.visibility = View.VISIBLE
                             }
-                        }
-
-                        if (isDataVisible) {
-                            saveStatus(true)
                         } else {
-                            saveStatus(false)
-                            routeOverview.visibility = View.INVISIBLE
-                            routeNavigationCurrentSpeed.visibility = View.INVISIBLE
-                            btnRecenterPosition.visibility = View.VISIBLE
+
+                            route = navigationViewModel.currentRoute.value!!
+
+                            demoLocationEngine = ReplayRouteLocationEngine()
+
+                            demoLocationEngine = navigationViewModel.replayRouteLocationEngine.value!!
+
+                            lastLegIndex = navigationViewModel.lastLegIndex.value!!
+                            lastStepIndex = navigationViewModel.lastStepIndex.value!!
+                            distanceRemaining = navigationViewModel.lastDistanceRemaining.value!!
+
+                            lastNavigationLocation = navigationViewModel.currentLocation.value!!
+
+                            startSimulationRoute()
+
+                            demoLocationEngine.let {
+                                navigation.let { navigation ->
+                                    it.updateSpeed(demoLocationSpeed)
+                                    it.assign(route)
+                                    navigation.locationEngine = it
+                                    navigation.startNavigation(route)
+                                    navigation.addProgressChangeListener(
+                                        navigationProgressChangeListener
+                                    )
+                                    locationSmoothAnimator?.animateToNewLocation(lastNavigationLocation!!)
+                                }
+                            }
+
+                            if (isDataVisible) {
+                                saveStatus(true)
+                            } else {
+                                saveStatus(false)
+                                routeOverview.visibility = View.INVISIBLE
+                                routeNavigationCurrentSpeed.visibility = View.INVISIBLE
+                                btnRecenterPosition.visibility = View.VISIBLE
+                            }
                         }
                     }
                 }
@@ -979,7 +1036,21 @@ class MapActivity : AppCompatActivity() {
                                         (navigationTurnByTurnCardView.width + pLeft + 260)
                                     layoutBottom = pBottom
                                     layoutRight = pRight
-                                    layoutTop = (navigationTurnByTurnCardView.height + pTop)
+                                    layoutTop = (directionsSummaryCardView.height + pTop)
+
+                                    mapboxMap.setPadding(
+                                        layoutLeft,
+                                        layoutTop,
+                                        layoutRight,
+                                        layoutBottom
+                                    )
+                                } else if (!isNavigationTurnByTurnMode) {
+                                    mapboxMap.setPadding(
+                                        pLeft,
+                                        (pTop + 120).toInt(),
+                                        pRight,
+                                        pBottom
+                                    )
                                 }
                             }
                             Configuration.ORIENTATION_PORTRAIT -> {
@@ -988,27 +1059,25 @@ class MapActivity : AppCompatActivity() {
                                     layoutBottom = pBottom
                                     layoutRight = pRight
                                     layoutTop = (pTop + 120)
+
+                                    mapboxMap.setPadding(
+                                        layoutLeft,
+                                        layoutTop,
+                                        layoutRight,
+                                        layoutBottom
+                                    )
+                                } else if (!isNavigationTurnByTurnMode) {
+                                    mapboxMap.setPadding(
+                                        pLeft,
+                                        (pTop + 120).toInt(),
+                                        pRight,
+                                        pBottom
+                                    )
                                 }
                             }
                             else -> {
-
+                                mapboxMap.setPadding(0, 0, 0, 0)
                             }
-                        }
-
-                        if (isNavigationTurnByTurnMode) {
-                            mapboxMap.setPadding(
-                                layoutLeft,
-                                layoutTop,
-                                layoutRight,
-                                layoutBottom
-                            )
-                        } else if (!isNavigationTurnByTurnMode) {
-                            mapboxMap.setPadding(
-                                pLeft,
-                                (pTop + 120).toInt(),
-                                pRight,
-                                pBottom
-                            )
                         }
 
                         mapUiSettings.setCompassEnabled(false)
@@ -1373,8 +1442,10 @@ class MapActivity : AppCompatActivity() {
 
     @SuppressLint("NewApi", "SetTextI18n")
     var navigationProgressChangeListener = ProgressChangeListener { location, routeProgress ->
+
+        lastRouteProgress = routeProgress
+
         lastNavigationLocation = location ?: return@ProgressChangeListener
-        navigationViewModel.updateLocation(lastNavigationLocation!!)
 
         // Inisialisasi sekali di onCreate()
         val maneuverBannerManager = ManeuverBannerManager(
@@ -1386,9 +1457,9 @@ class MapActivity : AppCompatActivity() {
 
         // Panggil di dalam listener onProgressChange
         runOnUiThread {
-            if (isNavigationTurnByTurnMode && routeProgress != null) {
+            if (isNavigationTurnByTurnMode && lastRouteProgress != null) {
                 navigationTurnByTurnCardView.visibility = View.VISIBLE
-                maneuverBannerManager.updateManeuver(routeProgress)
+                maneuverBannerManager.updateManeuver(lastRouteProgress)
             } else {
                 navigationTurnByTurnCardView.visibility = View.GONE
             }
@@ -1397,17 +1468,53 @@ class MapActivity : AppCompatActivity() {
         if (::navigation.isInitialized) {
 
             if (isNavigationTurnByTurnMode) {
+
+                navigationViewModel.updateLastRouteProgress(lastRouteProgress)
+
+                lastRouteProgress = navigationViewModel.lastRouteProgress.value!!
+
+                legProgress = lastRouteProgress.currentLegProgress() ?: return@ProgressChangeListener
+                stepProgress = legProgress.currentStepProgress() ?: return@ProgressChangeListener
+
+                distanceRemaining = stepProgress.distanceRemaining()
+                lastStepIndex = legProgress.stepIndex()
+                lastLegIndex = lastRouteProgress.legIndex()
+
+                navigationViewModel.setLastLegIndex(lastLegIndex)
+                navigationViewModel.setLastStepIndex(lastStepIndex)
+                navigationViewModel.setLastDistanceRemaining(distanceRemaining)
+
+                distanceRemaining = navigationViewModel.lastDistanceRemaining.value!!
+                lastLegIndex = navigationViewModel.lastLegIndex.value!!
+                lastStepIndex = navigationViewModel.lastStepIndex.value!!
+
+                lastRouteProgress.legIndex().let {
+                    navigationViewModel.lastLegIndex.value ?: lastLegIndex
+                }
+
+                lastRouteProgress.currentLegProgress().stepIndex().let {
+                    navigationViewModel.lastStepIndex.value ?: lastStepIndex
+                }
+
+                lastRouteProgress.distanceRemaining().let {
+                    navigationViewModel.lastDistanceRemaining.value ?: distanceRemaining
+                }
+
+                // 1. Ambil data tipe belokan (modifier) langsung dari rute OSRM
+                nextStep = lastRouteProgress.currentLegProgress().upComingStep()
+                currentStep = lastRouteProgress.currentLegProgress().currentStep()
+
                 val m = getString(R.string.route_meters)
                 val km = getString(R.string.route_kilometers)
 
-                val meters = (routeProgress!!.distanceRemaining()).toInt()
-                val kilometers = (routeProgress.distanceRemaining() / 1000).toInt()
+                val meters = (lastRouteProgress!!.distanceRemaining()).toInt()
+                val kilometers = (lastRouteProgress.distanceRemaining() / 1000).toInt()
 
                 // Format waktu
-                val minutes = (routeProgress.durationRemaining() / 60 % 60).toInt()
-                val minutesToHours = (routeProgress.durationRemaining() / 60).toInt()
-                val hours = (routeProgress.durationRemaining() / 60 / 60).toInt()
-                val days = (routeProgress.durationRemaining() / 60 / 60 / 24).toInt()
+                val minutes = (lastRouteProgress.durationRemaining() / 60 % 60).toInt()
+                val minutesToHours = (lastRouteProgress.durationRemaining() / 60).toInt()
+                val hours = (lastRouteProgress.durationRemaining() / 60 / 60).toInt()
+                val days = (lastRouteProgress.durationRemaining() / 60 / 60 / 24).toInt()
 
                 val minutesFormat = getString(R.string.directions_durations_minutes)
                 val hoursFormat = getString(R.string.directions_durations_hours)
@@ -1439,21 +1546,14 @@ class MapActivity : AppCompatActivity() {
                 directionsEta.text = "${timeNow}"
 
                 runOnUiThread {
-                    navigationlocation = navigationViewModel.currentLocation.value!!
-                    locationSmoothAnimator?.animateToNewLocation(navigationlocation!!)
+                    locationSmoothAnimator?.animateToNewLocation(
+                        lastNavigationLocation!!
+                    )
                     routeNavigationCurrentSpeed.text =
-                        "${(navigationlocation!!.speed * 3.6).toInt()}      km/h"
+                        "${(lastNavigationLocation!!.speed * 3.6).toInt()}      km/h"
+
+                    navigationViewModel.updateLocation(lastNavigationLocation!!)
                 }
-
-                val legProgress = routeProgress.currentLegProgress() ?: return@ProgressChangeListener
-                val stepProgress = legProgress.currentStepProgress() ?: return@ProgressChangeListener
-
-                val distanceRemaining = stepProgress.distanceRemaining()
-                val stepIndex = legProgress.stepIndex()
-
-                // 1. Ambil data tipe belokan (modifier) langsung dari rute OSRM
-                val nextStep = routeProgress.currentLegProgress().upComingStep()
-                val currentStep = routeProgress.currentLegProgress().currentStep()
 
                 val targetStep = nextStep
 
@@ -1496,7 +1596,7 @@ class MapActivity : AppCompatActivity() {
                 var announcement = ""
 
                 // Cetak Logcat untuk melihat apakah teks OSRM Anda benar-benar ada atau null
-                Log.d("NAV_DEBUG", "Step Ke: $stepIndex | Jarak Tersisa: $distanceRemaining")
+                Log.d("NAV_DEBUG", "Leg ke: $lastLegIndex | Step Ke: $lastStepIndex | Jarak Tersisa: $distanceRemaining")
 
                 val roundedDistance = if (distanceRemaining >= 1000) {
                         // Jika di atas 1 KM, bulatkan ke ratusan meter terdekat (misal 1250m jadi 1.2 km / 1200m)
@@ -1530,10 +1630,11 @@ class MapActivity : AppCompatActivity() {
 
                 // 5. PEMICU SUARA ADAPTIF & DINAMIS (Berdasarkan Kecepatan Nyata Kendaraan)
                 if (announcement.isNotEmpty()) {
+                    lastNavigationLocation = navigationViewModel.currentLocation.value
 
                     // Ambil kecepatan saat ini dalam m/s (meter per detik) dari objek location Anda
                     // Jika location null, berikan default kecepatan kota standar 30 km/jam (~8.3 m/s)
-                    val speedMetersPerSecond = navigationlocation?.speed ?: 8.3f
+                    val speedMetersPerSecond = lastNavigationLocation?.speed ?: 8.3f
 
                     /*
                         * Logika Waktu Reaksi (Waktu Mengemudi Menuju Belokan):
@@ -1544,8 +1645,8 @@ class MapActivity : AppCompatActivity() {
                     val triggerDistanceNear = (speedMetersPerSecond * 5).coerceAtLeast(20.0f)   // Minimal di jarak 20 meter
 
                     // Buat pengunci bitwise atau string agar kita bisa membunyikan 2 kali dalam 1 segmen jalan (stepIndex)
-                    val farTriggerKey = "${stepIndex}_FAR"
-                    val nearTriggerKey = "${stepIndex}_NEAR"
+                    val farTriggerKey = "${lastStepIndex}_FAR"
+                    val nearTriggerKey = "${lastStepIndex}_NEAR"
 
                     runOnUiThread {
                         // --- PEMICU 1: PENGINGAT JAUH (Adaptif) ---
@@ -1584,7 +1685,6 @@ class MapActivity : AppCompatActivity() {
 
     private val offRouteListener = object: OffRouteListener {
         override fun userOffRoute(location: Location?) {
-            navigationlocation = navigationViewModel.currentLocation.value ?: location
 
             if (::navigation.isInitialized) {
                 
@@ -1611,12 +1711,10 @@ class MapActivity : AppCompatActivity() {
                                 navigation.stopNavigation() // Hentikan pelacakan rute lama
                                 navigationViewModel.clearRoute()
                                 navigationViewModel.clearRouteAlt()
-                                navigationViewModel.clearNavigationData()
                                 navigationViewModel.setRouteAlt(routeList)
                                 navigationViewModel.setRoute(route)
                                 routeRestoredList.clear()
                                 navigation.startNavigation(route) // Mulai ulang pelacakan dengan rute baru (Kunci Snap Berfungsi Lagi)
-                                navigationViewModel.setNavigationData(navigation)
 
                                 // Gambar rute baru di peta buatan Anda
                                 navigationMapRoute?.addRoute(route)
@@ -1679,25 +1777,6 @@ class MapActivity : AppCompatActivity() {
 
         if (isNavigationTurnByTurnMode) {
 
-            val orientation = resources.configuration.orientation
-            when (orientation) {
-                Configuration.ORIENTATION_LANDSCAPE -> {
-                    navigationlocation.let {
-                        outState.putDouble("NAVIGATION_LOC_LNG", it!!.longitude)
-                        outState.putDouble("NAVIGATION_LOC_LAT", it.latitude)
-                        outState.putFloat("NAVIGATION_LOC_BEARING", it.bearing)
-                        outState.putFloat("NAVIGATION_LOC_SPEED", it.speed)
-                    }
-                }
-                Configuration.ORIENTATION_PORTRAIT -> {
-                    navigationlocation.let {
-                        outState.putDouble("NAVIGATION_LOC_LNG", it!!.longitude)
-                        outState.putDouble("NAVIGATION_LOC_LAT", it.latitude)
-                        outState.putFloat("NAVIGATION_LOC_BEARING", it.bearing)
-                        outState.putFloat("NAVIGATION_LOC_SPEED", it.speed)
-                    }
-                }
-            }
         }
 
         super.onSaveInstanceState(outState)
@@ -1733,6 +1812,7 @@ class MapActivity : AppCompatActivity() {
             MaterialAlertDialogBuilder(this@MapActivity)
                 .setTitle(R.string.exit_navigation_app_title)
                 .setPositiveButton(R.string.exit_navigation_app_yes) { _, _ ->
+                    locationSmoothAnimator?.clear()
                     finish()
                 }
                 .setNegativeButton(R.string.exit_navigation_app_no, null)
@@ -1845,12 +1925,15 @@ class MapActivity : AppCompatActivity() {
         navigationMapRoute?.removeRoute()
         navigationViewModel.clearRoute()
         navigationViewModel.clearRouteAlt()
+        navigationViewModel.clearLastRouteProgress()
+        navigationViewModel.clearLastLegIndex()
+        navigationViewModel.clearLastStepIndex()
+        navigationViewModel.clearLastDistanceRemaining()
+        navigationViewModel.clearLocationData()
         routeRestoredList.clear()
         savedRouteListJson = ""
         mapboxMap.removeMarker(marker)
         navigation.stopNavigation()
-        navigationViewModel.clearNavigationData()
-        navigationViewModel.clearLocationData()
 
         isNavigationTurnByTurnMode = false
 

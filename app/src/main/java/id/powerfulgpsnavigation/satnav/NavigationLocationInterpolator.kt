@@ -72,6 +72,7 @@ class LocationSmoothAnimator(private val mapboxMap: MapboxMap) {
 
                 // Push ke Mapbox/MapLibre LocationComponent
                 mapboxMap.locationComponent.forceLocationUpdate(currentStepLocation)
+                mapboxMap.locationComponent.setMaxAnimationFps(60)
             }
             start()
         }
