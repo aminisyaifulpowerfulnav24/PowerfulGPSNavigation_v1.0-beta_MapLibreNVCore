@@ -109,12 +109,23 @@ class NavigationViewModel : ViewModel() {
         _navigationLocationEngine.value = null
     }
 
-    fun setDemoNavigationEngine(replayRouteLocationEngine: ReplayRouteLocationEngine) {
-        _replayRouteLocationEngine.value = replayRouteLocationEngine
+    fun getOrCreateDemoEngine(): ReplayRouteLocationEngine? {
+        if (_replayRouteLocationEngine.value == null) {
+            _replayRouteLocationEngine.value = ReplayRouteLocationEngine()
+        }
+        return _replayRouteLocationEngine.value
     }
 
-    fun clearDemoNavigationEngine() {
+    fun destroyDemoEngine(): ReplayRouteLocationEngine? {
+        _replayRouteLocationEngine.value?.let { engine ->
+            try {
+                engine.onStop()
+            } catch (e: Exception) {
+                android.util.Log.e("NavVM", "Gagal menghentikan demo engine: ${e.message}")
+            }
+        }
         _replayRouteLocationEngine.value = null
+        return _replayRouteLocationEngine.value
     }
 
     fun setRouteAlt(routeAlt: List<DirectionsRoute>) {
@@ -131,6 +142,9 @@ class NavigationViewModel : ViewModel() {
     }
 
     fun clearNavigationData() {
+        mapboxNavigationInstance?.stopNavigation()
+        mapboxNavigationInstance?.onDestroy()
+        mapboxNavigationInstance = null
         _navigationTurnByTurnData.value = null
     }
 

@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.drawable.Drawable
@@ -350,7 +351,7 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
     private var isSimulationMode = false
     internal var isNavigationTurnByTurnMode = false
     private var isNavigationTurnByTurnEnabled = false
-    internal var demoLocationEngine: ReplayRouteLocationEngine = ReplayRouteLocationEngine()
+    internal var demoLocationEngine: ReplayRouteLocationEngine? = null
     private var demoLocationSpeed: Int = 65
 
     private var locationSmoothAnimator: LocationSmoothAnimator? = null
@@ -676,63 +677,6 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                             if (!isSimulationMode) {
                                 route = navigationViewModel.currentRoute.value!!
 
-                                navigationLocationEngine =
-                                    navigationViewModel.navigationLocationEngine.value
-                                val savedNavigationRouteEngine: LocationEngine? =
-                                    navigationLocationEngine
-
-                                val currentLastRouteProgress: RouteProgress? =
-                                    navigationViewModel.lastRouteProgress.value
-                                val currentLastNavigationLocation: Location? =
-                                    navigationViewModel.currentLocation.value
-
-                                if (navigation != null && savedNavigationRouteEngine != null && currentLastRouteProgress != null && currentLastNavigationLocation != null) {
-                                    navigation =
-                                        navigationViewModel.navigationTurnByTurnData.value!!
-                                    lastNavigationLocation = currentLastNavigationLocation
-                                    lastRouteProgress = currentLastRouteProgress
-                                    lastLegIndex = navigationViewModel.lastLegIndex.value
-                                        ?: lastRouteProgress.legIndex()
-                                    lastStepIndex = navigationViewModel.lastStepIndex.value
-                                        ?: lastRouteProgress.currentLegProgress()?.stepIndex() ?: 0
-                                    distanceRemaining =
-                                        navigationViewModel.lastDistanceRemaining.value
-                                            ?: lastRouteProgress.distanceRemaining()
-                                    nextStep = navigationViewModel.lastNextStep.value
-                                        ?: lastRouteProgress.currentLegProgress()?.upComingStep()
-                                    currentStep = (navigationViewModel.lastCurrentStep.value
-                                        ?: lastRouteProgress.currentLegProgress()?.currentStep())!!
-
-                                    savedNavigationRouteEngine.let { navLocEngine ->
-                                        navigation.let { navigation ->
-                                            navigationProgressChangeListener.let { naviRouteProgressListener ->
-                                                naviRouteProgressListener.onProgressChange(lastNavigationLocation, lastRouteProgress)
-                                                navigation?.locationEngine = navLocEngine
-                                                navigation?.addProgressChangeListener(
-                                                    naviRouteProgressListener
-                                                )
-                                                gpsLocationListenerUpdated.onLocationChanged(
-                                                    lastNavigationLocation!!
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if (isDataVisible) {
-                                    saveStatus(true)
-                                } else {
-                                    saveStatus(false)
-                                    routeOverview.visibility = View.INVISIBLE
-                                    routeNavigationCurrentSpeed.visibility = View.INVISIBLE
-                                    btnRecenterPosition.visibility = View.VISIBLE
-                                }
-
-                                onBackPressedDispatcher.addCallback(backToStartMapView)
-                            } else {
-
-                                route = navigationViewModel.currentRoute.value!!
-
                                 val currentLastRouteProgress: RouteProgress? =
                                     navigationViewModel.lastRouteProgress.value
                                 val currentLastNavigationLocation: Location? =
@@ -755,27 +699,15 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                                     currentStep = (navigationViewModel.lastCurrentStep.value
                                         ?: lastRouteProgress.currentLegProgress()?.currentStep())!!
 
-                                    val activeDemoRoute = route ?: return@runOnUiThread
-
-                                    demoLocationEngine.let { demoNavEngine ->
-                                        navigation.let { navigation ->
-                                            navigationProgressChangeListener.let { demoNaviRouteProgressListener ->
-                                                demoNaviRouteProgressListener.onProgressChange(lastNavigationLocation, lastRouteProgress)
-                                                val lastPoint = Point.fromLngLat(
-                                                    lastNavigationLocation!!.longitude,
-                                                    lastNavigationLocation!!.latitude
-                                                )
-                                                navigation?.locationEngine = demoNavEngine
-                                                demoNavEngine.assign(activeDemoRoute)
-                                                demoNavEngine.assignLastLocation(lastPoint)
-                                                demoNavEngine.updateSpeed(demoLocationSpeed)
-                                                navigation?.addProgressChangeListener(
-                                                    demoNaviRouteProgressListener
-                                                )
-                                                gpsLocationListenerUpdated.onLocationChanged(
-                                                    lastNavigationLocation!!
-                                                )
-                                            }
+                                    navigation.let { navigation ->
+                                        navigationProgressChangeListener.let { naviRouteProgressListener ->
+                                            naviRouteProgressListener.onProgressChange(lastNavigationLocation, lastRouteProgress)
+                                            navigation?.addProgressChangeListener(
+                                                naviRouteProgressListener
+                                            )
+                                            gpsLocationListenerUpdated.onLocationChanged(
+                                                lastNavigationLocation!!
+                                            )
                                         }
                                     }
                                 }
@@ -788,12 +720,12 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                                     routeNavigationCurrentSpeed.visibility = View.INVISIBLE
                                     btnRecenterPosition.visibility = View.VISIBLE
                                 }
-
-                                onBackPressedDispatcher.addCallback(backToStartMapView)
                             }
                         } else {
                             navigation?.addOffRouteListener(offRouteListener)
                         }
+
+                        onBackPressedDispatcher.addCallback(backToStartMapView)
                     }
                 }
             }
@@ -1448,15 +1380,15 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
         routeSummaryLayout.visibility = View.GONE
         navigationTurnByTurnUI.visibility = View.VISIBLE
 
-        val currentDemoLocationEngine = demoLocationEngine
+        // AMBIL ENGINE DARI VIEWMODEL (Jika belum ada, otomatis dibuat baru oleh VM)
+        demoLocationEngine = ReplayRouteLocationEngine()
 
-        if (currentDemoLocationEngine != null) {
+
+        if (demoLocationEngine != null) {
             route = navigationViewModel.currentRoute.value
             val activeDemoNaviRoute = route ?: return
 
-            navigation?.locationEngine = currentDemoLocationEngine
-
-            currentDemoLocationEngine.let {
+            demoLocationEngine?.let {
                 navigation.let { navigation ->
                     it.updateSpeed(demoLocationSpeed)
                     it.assign(activeDemoNaviRoute)
@@ -1476,13 +1408,11 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
         routeSummaryLayout.visibility = View.GONE
         navigationTurnByTurnUI.visibility = View.VISIBLE
 
-        val currentLocationEngine = navigationLocationEngine
+        val currentLocationEngine = navigationLocationEngine ?: LocationEngineProvider.getBestLocationEngine(this)
 
         if (currentLocationEngine != null) {
             route = navigationViewModel.currentRoute.value
             val activeNaviRoute = route ?: return
-
-            navigation?.locationEngine = currentLocationEngine
 
             currentLocationEngine.let { locationEngine ->
                 navigation.let {
@@ -1733,10 +1663,6 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
 
             if (isNavigationTurnByTurnMode) {
                 runOnUiThread {
-                    if (!isSimulationMode) {
-                        navigationViewModel.clearNavigationEngine()
-                    }
-
                     navigationViewModel.clearLocationData()
                     navigationViewModel.clearNavigationData()
                     navigationViewModel.clearLastRouteProgress()
@@ -1986,30 +1912,45 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
     }
 
     fun cancelNavigationRoute() {
-        if (!isSimulationMode) {
-            navigationViewModel.clearNavigationEngine()
+
+        realTimeLocationEnabled = true
+
+        if (isSimulationMode) {
+            demoLocationEngine = null
         }
 
-        navigationViewModel.clearLocationData()
+        navigation?.removeProgressChangeListener(navigationProgressChangeListener)
+        navigation?.removeOffRouteListener(offRouteListener)
+        navigation?.stopNavigation()
+        navigationViewModel.clearNavigationData()
+        navigation = null
 
         routeSimulationBtn.visibility = View.INVISIBLE
         mapboxMap.setPadding(0, 0, 0, 0)
-        toggleLocationSource(false)
-        isSimulationMode = false
         navigationMapRoute?.removeRoute()
         navigationViewModel.clearRoute()
         navigationViewModel.clearRouteAlt()
         navigationViewModel.clearLastRouteProgress()
-        navigationViewModel.clearNavigationData()
+        navigationViewModel.clearLastLegIndex()
+        navigationViewModel.clearLastLegProgress()
+        navigationViewModel.clearLastStepIndex()
+        navigationViewModel.clearLastCurrentStep()
+        navigationViewModel.clearLastNextStep()
+        navigationViewModel.clearLastDistanceRemaining()
+        navigationViewModel.clearLocationData()
         routeRestoredList.clear()
         savedRouteListJson = ""
         mapboxMap.removeMarker(marker)
-        navigation?.stopNavigation()
-        navigation?.removeOffRouteListener(offRouteListener)
+        route = null
+
+        navigation = navigationViewModel.getOrCreateNavigation(this)
 
         isNavigationTurnByTurnMode = false
+        isSimulationMode = false
+        toggleLocationSource(false)
 
-        realTimeLocationEnabled = true
+        routeNavigationCurrentSpeed.text = "--       km/h"
+
         isDirectionsRoute = false
         isLocationSelected = false
         isSearchUIVisible = false
@@ -2048,6 +1989,18 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
             saveStatus(true)
         } else {
             saveStatus(false)
+        }
+
+        // 1. Cek orientasi layar saat ini
+        val currentOrientation = resources.configuration.orientation
+
+        // 2. Gunakan percabangan IF untuk membuka posisi tersebut
+        if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+            // Jika sedang mendatar, buka di posisi landscape
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        } else if (currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
+            // Jika sedang tegak, buka di posisi portrait
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
 
         onBackPressedDispatcher.addCallback(closeThisNavMapsApp)

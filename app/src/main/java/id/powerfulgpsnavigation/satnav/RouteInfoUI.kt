@@ -1,5 +1,7 @@
 package id.powerfulgpsnavigation.satnav
 
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import com.mapbox.geojson.Point
 
 fun MapActivity.RouteDirectionsSummary() {
@@ -33,10 +35,22 @@ fun MapActivity.RouteDirectionsSummary() {
         isRouteSummaryUI = false
         isNavigationTurnByTurnMode = true
         isNavigating = true
-        navigationViewModel.setNavigationData(demoNavigation)
         saveStatus(true)
+        navigationViewModel.setNavigationData(demoNavigation)
         toggleLocationSource(true)
         startSimulationRoute()
+
+        // 1. Cek orientasi layar saat ini
+        val currentOrientation = resources.configuration.orientation
+
+        // 2. Gunakan percabangan IF untuk mengunci posisi tersebut
+        if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+            // Jika sedang mendatar, kunci di posisi landscape
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        } else if (currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
+            // Jika sedang tegak, kunci di posisi portrait
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
     }
 
     startNavigationBtn.setOnClickListener {
@@ -46,7 +60,6 @@ fun MapActivity.RouteDirectionsSummary() {
         isNavigationTurnByTurnMode = true
         isNavigating = true
         navigationViewModel.setNavigationData(realTimeNavigation)
-        navigationViewModel.setNavigationEngine(navigationLocationEngine!!)
         saveStatus(true)
         toggleLocationSource(false)
         startNavigationRoute()
