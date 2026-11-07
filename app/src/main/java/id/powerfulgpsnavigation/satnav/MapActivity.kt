@@ -450,7 +450,7 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                 style = nvMapStyle
                 if (fineLocationGranted || coarseLocationGranted) {
                     locationComponent = mapboxMap.locationComponent
-                    navigationLocationEngine = navigation?.locationEngine
+                    navigationLocationEngine = LocationEngineProvider.getBestLocationEngine(this)
                     locationAnimationComponentOptions =
                         LocationComponentOptions.builder(this)
                             .accuracyAnimationEnabled(false)

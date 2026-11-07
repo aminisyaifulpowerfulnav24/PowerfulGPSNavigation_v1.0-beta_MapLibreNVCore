@@ -3,6 +3,9 @@
     <string name="app_name">Powerful GPS Navigation</string>
     <string name="app_permission_dialog_title">Izin lokasi diperlukan</string>
     <string name="app_permission_dialog_message">Aplikasi ini membutuhkan akses lokasi untuk berfungsi dengan baik, Silakan aktifkan izin di pengaturan aplikasi.</string>
+    <string name="navigation_service_active_title">Layanan Navigasi Aktif</string>
+    <string name="navigation_service_active_text">Layanan navigasi berjalan di latar belakang untuk menyediakan pembaruan navigasi secara real-time</string>
+    <string name="navigation_service_active_description">Channel untuk performa navigasi latar belakang tanpa putus</string>
     <string name="open_settings">Buka pengaturan</string>
     <string name="cancel">Batal</string>
     <string name="exit_navigation_app_title">Keluar dari Powerful GPS Navigation</string>

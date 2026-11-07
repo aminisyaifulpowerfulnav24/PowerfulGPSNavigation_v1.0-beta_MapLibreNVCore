@@ -2,6 +2,9 @@
     <string name="app_name">Powerful GPS Navigation</string>
     <string name="app_permission_dialog_title">Location permission needed</string>
     <string name="app_permission_dialog_message">Location access is required for this app to function correctly, Please enable permissions in your device settings</string>
+    <string name="navigation_service_active_title">Navigation Service is Active</string>
+    <string name="navigation_service_active_text">Navigation Service is running in the background to provide real-time navigation updates.</string>
+    <string name="navigation_service_active_description">This channel for background navigation perfomance without disconnected</string>
     <string name="open_settings">Open settings</string>
     <string name="cancel">Cancel</string>
     <string name="exit_navigation_app_title">Exit Powerful GPS Navigation</string>

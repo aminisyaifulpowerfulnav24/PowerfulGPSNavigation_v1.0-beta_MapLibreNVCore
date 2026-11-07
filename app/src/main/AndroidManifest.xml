@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -28,14 +29,17 @@
             android:alwaysRetainTaskState="true"
             android:turnScreenOn="true"
             android:showOnLockScreen="true"
-            android:showWhenLocked="true"
-            >
+            android:showWhenLocked="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <service android:name=".NavigationService"
+            android:foregroundServiceType="location"
+            android:exported="false" />
 
         <meta-data
             android:name="firebase_performance_logcat_enabled"
