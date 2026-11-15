@@ -37,8 +37,7 @@
             </intent-filter>
         </activity>
         
-        <service
-            android:name=".NavigationService"
+        <service android:name=".NavigationService"
             android:foregroundServiceType="location"
             android:exported="false" />
 
