@@ -76,6 +76,19 @@ class NavigationViewModel : ViewModel() {
 
     private var mapboxNavigationInstance: MapboxNavigation? = null
 
+    private val _mapViewLat = MutableLiveData<Double>()
+    private val _mapViewLng = MutableLiveData<Double>()
+    private val _mapViewZoom = MutableLiveData<Double>()
+    private val _mapViewBearing = MutableLiveData<Double>()
+    private val _mapViewTilt = MutableLiveData<Double>()
+
+    var mapViewLat: LiveData<Double> = _mapViewLat
+    var mapViewLng: LiveData<Double> = _mapViewLng
+    var mapViewZoom: LiveData<Double> = _mapViewZoom
+    var mapViewBearing: LiveData<Double> = _mapViewBearing
+    var mapViewTilt: LiveData<Double> = _mapViewBearing
+
+
     fun getOrCreateNavigation(context: Context): MapboxNavigation {
         if (mapboxNavigationInstance == null) {
             val options = MapboxNavigationOptions.builder()
@@ -146,6 +159,22 @@ class NavigationViewModel : ViewModel() {
         mapboxNavigationInstance?.onDestroy()
         mapboxNavigationInstance = null
         _navigationTurnByTurnData.value = null
+    }
+
+    fun setNavMapViewPosition(lat: Double, lng: Double, zoom: Double, bearing: Double, tilt: Double) {
+        _mapViewLat.value = lat
+        _mapViewLng.value = lng
+        _mapViewZoom.value = zoom
+        _mapViewBearing.value = bearing
+        _mapViewTilt.value = tilt
+    }
+
+    fun clearNavMapViewPosition() {
+        _mapViewLat.value = null
+        _mapViewLng.value = null
+        _mapViewZoom.value = null
+        _mapViewBearing.value = null
+        _mapViewTilt.value = null
     }
 
     fun startNavigation(route: DirectionsRoute) {

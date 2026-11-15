@@ -185,10 +185,14 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
     private var mapViewLat = 0.0
     private var mapViewLng = 0.0
     private var mapViewZoom = 1.0
+    private var mapViewBearing = 0.0
+    private var mapViewTilt = 0.0
 
     private var defaultMapViewLat = 0.0
     private var defaultMapViewLng = 0.0
     private var defaultMapViewZoom = 1.0
+    private var defaultMapViewBearing = 0.0
+    private var defaultMapViewTilt = 0.0
 
     private var currentMapStyle = ""
 
@@ -199,10 +203,12 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
     private val KEY_LAT_VIEW = "saved_latitude"
     private val KEY_LNG_VIEW = "saved_longitude"
     private val KEY_ZOOM = "saved_zoom"
+    private val KEY_BEARING = "saved_bearing"
+    private val KEY_TILT = "saved_tilt"
 
     private lateinit var setMapViewPosition: SharedPreferences
     private lateinit var cameraPosition: CameraPosition
-    private lateinit var target: LatLng
+    private var target: LatLng? = null
     private lateinit var markerCameraPosition: CameraPosition
 
     private lateinit var style: Style
@@ -437,7 +443,11 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
             mapUiSettings.setCompassEnabled(true)
             mapUiSettings.setCompassMargins(0, 24, 24, 0)
 
-            restoreMapViewPosition()
+            if (!isNavigationTurnByTurnMode) {
+                restoreMapViewPosition()
+            } else if (isNavigationTurnByTurnMode && !isDataVisible) {
+                restoreMapViewPosition()
+            }
 
             currentMapStyle = if (isNightTime()) DARK_STYLE else LIGHT_STYLE
 
@@ -555,10 +565,15 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                     }
                 }
             }
-            mapboxMap.cameraPosition = CameraPosition.Builder()
-                .target(LatLng(mapViewLat, mapViewLng))
-                .zoom(mapViewZoom)
-                .build()
+
+            if (!isNavigationTurnByTurnMode) {
+                mapboxMap.cameraPosition = CameraPosition.Builder()
+                    .target(LatLng(mapViewLat, mapViewLng))
+                    .zoom(mapViewZoom)
+                    .bearing(mapViewBearing)
+                    .tilt(mapViewTilt)
+                    .build()
+            }
 
             mapboxMap.addOnMoveListener(object : MapboxMap.OnMoveListener {
 
@@ -669,45 +684,58 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
 
                 if (isNavigationTurnByTurnMode) {
                     runOnUiThread {
-                        if (routeList != null) {
-                            routeList = navigationViewModel.currentRouteAlt.value!!
+
+                        val activeRouteList = navigationViewModel.currentRoute.value ?: return@runOnUiThread
+
+                        if (activeRouteList == null || activeRouteList != null) {
+                            routeList = listOf(activeRouteList)
 
                             navigationMapRoute?.addRoutes(routeList)
 
                             if (!isSimulationMode) {
-                                route = navigationViewModel.currentRoute.value!!
 
-                                val currentLastRouteProgress: RouteProgress? =
-                                    navigationViewModel.lastRouteProgress.value
-                                val currentLastNavigationLocation: Location? =
-                                    navigationViewModel.currentLocation.value
+                                if (isDataVisible) {
+                                    mapViewLat = navigationViewModel.mapViewLat.value ?: return@runOnUiThread
+                                    mapViewLng = navigationViewModel.mapViewLng.value ?: return@runOnUiThread
+                                    mapViewZoom = navigationViewModel.mapViewZoom.value ?: return@runOnUiThread
+                                    mapViewBearing = navigationViewModel.mapViewBearing.value ?: return@runOnUiThread
+                                    mapViewTilt = navigationViewModel.mapViewTilt.value ?: return@runOnUiThread
 
-                                if (navigation != null && currentLastRouteProgress != null && currentLastNavigationLocation != null) {
-                                    navigation =
-                                        navigationViewModel.navigationTurnByTurnData.value!!
+                                    mapboxMap.cameraPosition = CameraPosition.Builder()
+                                        .target(LatLng(mapViewLat, mapViewLng))
+                                        .zoom(mapViewZoom)
+                                        .bearing(mapViewBearing)
+                                        .tilt(mapViewTilt)
+                                        .build()
+                                }
+
+                                val activeRoute = navigationViewModel.currentRoute.value
+
+                                val currentLastRouteProgress: RouteProgress =
+                                    navigationViewModel.lastRouteProgress.value ?: return@runOnUiThread
+                                val currentLastNavigationLocation: Location =
+                                    navigationViewModel.currentLocation.value ?: return@runOnUiThread
+
+                                val currentNavTurnByTurnData = navigationViewModel.navigationTurnByTurnData.value
+
+                                if (activeRoute == null || activeRoute != null && navigation != null && currentLastRouteProgress != null && currentLastNavigationLocation != null && currentNavTurnByTurnData != null) {
+                                    route = activeRoute
+                                    navigation = currentNavTurnByTurnData
                                     lastNavigationLocation = currentLastNavigationLocation
                                     lastRouteProgress = currentLastRouteProgress
-                                    lastLegIndex = navigationViewModel.lastLegIndex.value
-                                        ?: lastRouteProgress.legIndex()
-                                    lastStepIndex = navigationViewModel.lastStepIndex.value
-                                        ?: lastRouteProgress.currentLegProgress()?.stepIndex() ?: 0
+                                    lastLegIndex = navigationViewModel.lastLegIndex.value ?: lastRouteProgress.legIndex()
+                                    lastStepIndex = navigationViewModel.lastStepIndex.value ?: lastRouteProgress.currentLegProgress()?.stepIndex() ?: 0
                                     distanceRemaining =
-                                        navigationViewModel.lastDistanceRemaining.value
-                                            ?: lastRouteProgress.distanceRemaining()
-                                    nextStep = navigationViewModel.lastNextStep.value
-                                        ?: lastRouteProgress.currentLegProgress()?.upComingStep()
-                                    currentStep = (navigationViewModel.lastCurrentStep.value
-                                        ?: lastRouteProgress.currentLegProgress()?.currentStep())!!
+                                        navigationViewModel.lastDistanceRemaining.value ?: lastRouteProgress.distanceRemaining()
+                                    nextStep = navigationViewModel.lastNextStep.value ?: lastRouteProgress.currentLegProgress()?.upComingStep()
+                                    currentStep = (navigationViewModel.lastCurrentStep.value ?: lastRouteProgress.currentLegProgress()?.currentStep())!!
 
-                                    navigation.let { navigation ->
+                                    navigation?.let { navigation ->
                                         navigationProgressChangeListener.let { naviRouteProgressListener ->
-                                            naviRouteProgressListener.onProgressChange(lastNavigationLocation, lastRouteProgress)
-                                            navigation?.addProgressChangeListener(
+                                            navigation.addProgressChangeListener(
                                                 naviRouteProgressListener
                                             )
-                                            gpsLocationListenerUpdated.onLocationChanged(
-                                                lastNavigationLocation!!
-                                            )
+                                            navigation.addOffRouteListener(offRouteListener)
                                         }
                                     }
                                 }
@@ -721,9 +749,9 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                                     btnRecenterPosition.visibility = View.VISIBLE
                                 }
                             }
-                        } else {
-                            navigation?.addOffRouteListener(offRouteListener)
                         }
+
+
 
                         onBackPressedDispatcher.addCallback(backToStartMapView)
                     }
@@ -972,11 +1000,40 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
     private fun saveMapViewData() {
         if (target != null) {
             setMapViewPosition = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            setMapViewPosition.edit().apply() {
-                putFloat(KEY_LAT_VIEW, target.latitude.toFloat())
-                putFloat(KEY_LNG_VIEW, target.longitude.toFloat())
-                putFloat(KEY_ZOOM, cameraPosition.zoom.toFloat())
-                apply()
+
+            if (!isNavigationTurnByTurnMode) {
+                setMapViewPosition.edit().apply() {
+                    putFloat(KEY_LAT_VIEW, target!!.latitude.toFloat())
+                    putFloat(KEY_LNG_VIEW, target!!.longitude.toFloat())
+                    putFloat(KEY_ZOOM, cameraPosition.zoom.toFloat())
+                    putFloat(KEY_BEARING, cameraPosition.bearing.toFloat())
+                    putFloat(KEY_TILT, cameraPosition.tilt.toFloat())
+                    apply()
+                }
+            }
+
+            if (isNavigationTurnByTurnMode && !isDataVisible) {
+                val orientation = resources.configuration.orientation
+
+                if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                    setMapViewPosition.edit().apply() {
+                        putFloat(KEY_LAT_VIEW, target!!.latitude.toFloat())
+                        putFloat(KEY_LNG_VIEW, target!!.longitude.toFloat())
+                        putFloat(KEY_ZOOM, cameraPosition.zoom.toFloat())
+                        putFloat(KEY_BEARING, cameraPosition.bearing.toFloat())
+                        putFloat(KEY_TILT, cameraPosition.tilt.toFloat())
+                        apply()
+                    }
+                } else if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+                    setMapViewPosition.edit().apply() {
+                        putFloat(KEY_LAT_VIEW, target!!.latitude.toFloat())
+                        putFloat(KEY_LNG_VIEW, target!!.longitude.toFloat())
+                        putFloat(KEY_ZOOM, cameraPosition.zoom.toFloat())
+                        putFloat(KEY_BEARING, cameraPosition.bearing.toFloat())
+                        putFloat(KEY_TILT, cameraPosition.tilt.toFloat())
+                        apply()
+                    }
+                }
             }
         }
     }
@@ -1092,11 +1149,29 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
     private fun restoreMapViewPosition() {
         setMapViewPosition = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-        mapViewLat =
-            setMapViewPosition.getFloat(KEY_LAT_VIEW, defaultMapViewLat.toFloat()).toDouble()
-        mapViewLng =
-            setMapViewPosition.getFloat(KEY_LNG_VIEW, defaultMapViewLng.toFloat()).toDouble()
-        mapViewZoom = setMapViewPosition.getFloat(KEY_ZOOM, defaultMapViewZoom.toFloat()).toDouble()
+        if (!isNavigationTurnByTurnMode) {
+            mapViewLat =
+                setMapViewPosition.getFloat(KEY_LAT_VIEW, defaultMapViewLat.toFloat()).toDouble()
+            mapViewLng =
+                setMapViewPosition.getFloat(KEY_LNG_VIEW, defaultMapViewLng.toFloat()).toDouble()
+            mapViewZoom =
+                setMapViewPosition.getFloat(KEY_ZOOM, defaultMapViewZoom.toFloat()).toDouble()
+            mapViewBearing =
+                setMapViewPosition.getFloat(KEY_BEARING, defaultMapViewBearing.toFloat()).toDouble()
+            mapViewTilt =
+                setMapViewPosition.getFloat(KEY_TILT, defaultMapViewTilt.toFloat()).toDouble()
+        } else if (isNavigationTurnByTurnMode && !isDataVisible) {
+            mapViewLat =
+                setMapViewPosition.getFloat(KEY_LAT_VIEW, defaultMapViewLat.toFloat()).toDouble()
+            mapViewLng =
+                setMapViewPosition.getFloat(KEY_LNG_VIEW, defaultMapViewLng.toFloat()).toDouble()
+            mapViewZoom =
+                setMapViewPosition.getFloat(KEY_ZOOM, defaultMapViewZoom.toFloat()).toDouble()
+            mapViewBearing =
+                setMapViewPosition.getFloat(KEY_BEARING, defaultMapViewBearing.toFloat()).toDouble()
+            mapViewTilt =
+                setMapViewPosition.getFloat(KEY_TILT, defaultMapViewTilt.toFloat()).toDouble()
+        }
     }
 
     private fun backToSearchMapUI() {
@@ -1380,6 +1455,8 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
         routeSummaryLayout.visibility = View.GONE
         navigationTurnByTurnUI.visibility = View.VISIBLE
 
+        saveStatus(true)
+
         // AMBIL ENGINE DARI VIEWMODEL (Jika belum ada, otomatis dibuat baru oleh VM)
         demoLocationEngine = ReplayRouteLocationEngine()
 
@@ -1395,10 +1472,15 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                     navigation?.locationEngine = it
                     navigation?.startNavigation(activeDemoNaviRoute)
                     navigation?.addProgressChangeListener(navigationProgressChangeListener)
+                    navigation?.addOffRouteListener(offRouteListener)
                 }
             }
 
             Log.d("Navigation", "rute simulasi navigasi berhasil dipulihkan")
+        }
+
+        if (isDataVisible) {
+            navigationViewModel.setNavMapViewPosition(mapViewLat, mapViewLng, mapViewZoom, mapViewBearing, mapViewTilt)
         }
 
         onBackPressedDispatcher.addCallback(backToStartMapView)
@@ -1407,6 +1489,8 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
     fun startNavigationRoute() {
         routeSummaryLayout.visibility = View.GONE
         navigationTurnByTurnUI.visibility = View.VISIBLE
+
+        saveStatus(true)
 
         val currentLocationEngine = navigationLocationEngine ?: LocationEngineProvider.getBestLocationEngine(this)
 
@@ -1419,10 +1503,15 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                     it?.locationEngine = locationEngine
                     it?.startNavigation(activeNaviRoute)
                     it?.addProgressChangeListener(navigationProgressChangeListener)
+                    navigation?.addOffRouteListener(offRouteListener)
                 }
             }
 
             Log.d("Navigation", "rute navigasi berhasil dipulihkan")
+        }
+
+        if (isDataVisible) {
+            navigationViewModel.setNavMapViewPosition(mapViewLat, mapViewLng, mapViewZoom, mapViewBearing, mapViewTilt)
         }
 
         onBackPressedDispatcher.addCallback(backToStartMapView)
@@ -1435,27 +1524,6 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
 
             lastRouteProgress = routeProgress
             lastNavigationLocation = location
-
-            legProgress = lastRouteProgress.currentLegProgress() ?: return
-            stepProgress = legProgress.currentStepProgress() ?: return
-
-            lastLegIndex = lastRouteProgress.legIndex()
-            lastStepIndex = lastRouteProgress.currentLegProgress().stepIndex()
-            distanceRemaining = lastRouteProgress.distanceRemaining()
-
-            // 1. Ambil data tipe belokan (modifier) langsung dari rute OSRM
-            nextStep = lastRouteProgress.currentLegProgress().upComingStep()
-            currentStep = lastRouteProgress.currentLegProgress().currentStep()
-
-
-            navigationViewModel.updateLastRouteProgress(
-                lastRouteProgress,
-                lastLegIndex,
-                lastStepIndex,
-                distanceRemaining,
-                nextStep,
-                currentStep
-            )
 
             navigationViewModel.updateLocation(lastNavigationLocation!!)
 
@@ -1529,6 +1597,17 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                     routeNavigationCurrentSpeed.text =
                         "${(lastNavigationLocation!!.speed * 3.6).toInt()}      km/h"
                 }
+
+                legProgress = lastRouteProgress.currentLegProgress() ?: return
+                stepProgress = legProgress.currentStepProgress() ?: return
+
+                lastLegIndex = lastRouteProgress.legIndex()
+                lastStepIndex = lastRouteProgress.currentLegProgress().stepIndex()
+                distanceRemaining = stepProgress.distanceRemaining()
+
+                // 1. Ambil data tipe belokan (modifier) langsung dari rute OSRM
+                nextStep = lastRouteProgress.currentLegProgress().upComingStep()
+                currentStep = lastRouteProgress.currentLegProgress().currentStep()
 
                 val targetStep = nextStep
 
@@ -1651,9 +1730,16 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                             }
                         }
                     }
-                }
 
-                navigation?.addOffRouteListener(offRouteListener)
+                    navigationViewModel.updateLastRouteProgress(
+                        lastRouteProgress,
+                        lastLegIndex,
+                        lastStepIndex,
+                        distanceRemaining,
+                        nextStep,
+                        currentStep
+                    )
+                }
             }
         }
     }
@@ -1663,14 +1749,28 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
 
             if (isNavigationTurnByTurnMode) {
                 runOnUiThread {
-                    navigationViewModel.clearLocationData()
-                    navigationViewModel.clearNavigationData()
+                    if (!isSimulationMode) {
+                        // 1. Cek orientasi layar saat ini
+                        val currentOrientation = resources.configuration.orientation
+
+                        // 2. Gunakan percabangan IF untuk mengunci posisi tersebut
+                        if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+                            // Jika sedang mendatar, kunci di posisi landscape
+                            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                        } else if (currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
+                            // Jika sedang tegak, kunci di posisi portrait
+                            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                        }
+                    }
+
                     navigationViewModel.clearLastRouteProgress()
                     navigationViewModel.clearRoute()
                     navigationViewModel.clearRouteAlt()
                     routeRestoredList.clear()
                     navigationMapRoute?.removeRoute()
                     navigation?.stopNavigation() // Hentikan pelacakan rute lama
+
+                    routeOverview.visibility = View.INVISIBLE
                 }
 
                 val iconManeuver = findViewById<ImageView>(R.id.icon_maneuver_directions)
@@ -1678,7 +1778,6 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                 val tvStreetName = findViewById<TextView>(R.id.maneuver_directions_streetname)
 
                 iconManeuver.setImageResource(R.drawable.ic_menu_vehicle_profile_settings)
-                routeOverview.visibility = View.INVISIBLE
 
                 tvDistance.text = getString(R.string.navigation_recalculating_route)
                 tvStreetName.text = ""
@@ -1711,6 +1810,21 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                                 navigation?.startNavigation(updateNavigationRoute) // Mulai ulang pelacakan dengan rute baru (Kunci Snap Berfungsi Lagi)
 
                                 routeOverview.visibility = View.VISIBLE
+
+                                recalculatingRouteRunnable = null
+
+                                if (!isSimulationMode) {
+                                    val currentOrientation = resources.configuration.orientation
+
+                                    // 2. Gunakan percabangan IF untuk mengunci posisi tersebut
+                                    if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+                                        // Jika sedang mendatar, kunci di posisi landscape
+                                        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                                    } else if (currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
+                                        // Jika sedang tegak, kunci di posisi portrait
+                                        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                                    }
+                                }
                             }
                         }
                     }
@@ -1918,6 +2032,8 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
         if (isSimulationMode) {
             demoLocationEngine = null
         }
+
+        navigationViewModel.clearNavMapViewPosition()
 
         navigation?.removeProgressChangeListener(navigationProgressChangeListener)
         navigation?.removeOffRouteListener(offRouteListener)
