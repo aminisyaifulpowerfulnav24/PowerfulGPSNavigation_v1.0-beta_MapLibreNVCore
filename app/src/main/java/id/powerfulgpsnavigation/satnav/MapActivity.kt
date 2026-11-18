@@ -10,6 +10,7 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.drawable.Drawable
+import android.hardware.display.DisplayManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -25,6 +26,7 @@ import android.text.Editable
 import android.text.SpannableStringBuilder
 import android.text.TextWatcher
 import android.util.Log
+import android.view.Display
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
@@ -449,13 +451,15 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                 restoreMapViewPosition()
             }
 
+            locationSmoothAnimator?.clear()
+
             currentMapStyle = if (isNightTime()) DARK_STYLE else LIGHT_STYLE
 
-            mapboxMap.setStyle(currentMapStyle) { nvMapStyle ->
+            mapboxMap.setStyle(Style.Builder().fromUri(currentMapStyle)) { nvMapStyle ->
 
                 navigationMapRoute = NavigationMapRoute(navigation, mapView, mapboxMap)
 
-                locationSmoothAnimator = LocationSmoothAnimator(mapboxMap)
+                locationSmoothAnimator = LocationSmoothAnimator(this, mapboxMap)
 
                 style = nvMapStyle
                 if (fineLocationGranted || coarseLocationGranted) {
@@ -751,8 +755,6 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
                             }
                         }
 
-
-
                         onBackPressedDispatcher.addCallback(backToStartMapView)
                     }
                 }
@@ -763,7 +765,16 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
             checkAndRequestLocationPermissions()
         }
 
-        mapView.setMaximumFps(60)
+        val displayManager = this.getSystemService(DISPLAY_SERVICE) as? DisplayManager
+        val display = displayManager?.getDisplay(Display.DEFAULT_DISPLAY)
+        val refreshRate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            this.display?.refreshRate ?: display?.refreshRate ?: 60f
+        } else {
+            @Suppress("DEPRECATION")
+            display?.refreshRate ?: 60f
+        }
+
+        mapView.setMaximumFps(refreshRate.toInt().coerceAtLeast(60))
 
         recenterPosition = rootView.findViewById(R.id.recenterNavigation)
 
@@ -2031,6 +2042,18 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
 
         if (isSimulationMode) {
             demoLocationEngine = null
+
+            // 1. Cek orientasi layar saat ini
+            val currentOrientation = resources.configuration.orientation
+
+            // 2. Gunakan percabangan IF untuk membuka posisi tersebut
+            if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+                // Jika sedang mendatar, buka di posisi landscape
+                requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            } else if (currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
+                // Jika sedang tegak, buka di posisi portrait
+                requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            }
         }
 
         navigationViewModel.clearNavMapViewPosition()
@@ -2088,6 +2111,8 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
             routeTransportationPedestrian
         ).stopNavigationRoute()
 
+        gentleNavigationSpeaker.shutdown()
+
         routeTransportationCar.backgroundTintList =
             ContextCompat.getColorStateList(this@MapActivity, R.color.white)
         routeTransportationPedestrian.backgroundTintList =
@@ -2107,17 +2132,7 @@ class MapActivity : AppCompatActivity(), LifecycleOwner {
             saveStatus(false)
         }
 
-        // 1. Cek orientasi layar saat ini
-        val currentOrientation = resources.configuration.orientation
-
-        // 2. Gunakan percabangan IF untuk membuka posisi tersebut
-        if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) {
-            // Jika sedang mendatar, buka di posisi landscape
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        } else if (currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
-            // Jika sedang tegak, buka di posisi portrait
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        }
+        closeThisNavMapsApp.remove()
 
         onBackPressedDispatcher.addCallback(closeThisNavMapsApp)
     }

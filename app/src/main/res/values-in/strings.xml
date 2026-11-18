@@ -23,7 +23,7 @@
     <string name="directions_durations_days"> h</string>
     <string name="directions_durations_hours"> j</string>
     <string name="directions_durations_minutes"> mnt</string>
-    <string name="start_navigation">mulai bernavigasi</string>
+    <string name="start_navigation">Ayo!</string>
     <string name="route_time_remaining">Waktu</string>
     <string name="route_distance_remaining">Jarak</string>
     <string name="route_eta">PWT</string>
@@ -37,4 +37,6 @@
     <string name="settings">Setelan</string>
     <string name="nav_emergency_sos">Bantuan Darurat</string>
     <string name="manage_maps">Kelola Peta</string>
+    <string name="navigation_instructions_sounds_language">id</string>
+    <string name="navigation_instructions_sounds_country">ID</string>
 </resources>

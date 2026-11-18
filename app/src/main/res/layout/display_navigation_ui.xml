@@ -7,10 +7,21 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/navigationTurnByTurnBarLayout"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
     <androidx.cardview.widget.CardView
         android:id="@+id/maneuver_directions_card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:cardCornerRadius="12dp"
         app:cardElevation="8dp"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -64,22 +75,67 @@
 
     </androidx.cardview.widget.CardView>
 
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-        android:id="@+id/btn_navigation_voice_mute_unmute"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        app:icon="@drawable/ic_sound_on"
-        app:iconTint="@color/white"
-        app:backgroundTint="@color/dark_blue_UI_primary"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/maneuver_directions_card"
-        />
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:id="@+id/navigationTurnByTurnButtonUI"
+            app:layout_constraintTop_toBottomOf="@id/maneuver_directions_card"
+            app:layout_constraintBottom_toTopOf="@id/maneuver_directions_summary_card"
+            app:layout_constraintRight_toRightOf="parent">
+
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/btn_navigation_voice_mute_unmute"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            app:icon="@drawable/ic_sound_on"
+            app:iconTint="@color/white"
+            app:backgroundTint="@color/dark_blue_UI_primary"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/navigationRouteSpeedKph"
+            android:layout_width="65dp"
+            android:layout_height="65dp"
+            android:layout_margin="18dp"
+            android:textSize="20dp"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            android:text="--    km/h"
+            android:background="@drawable/circle_shape_navigation_speed_kph"
+            android:visibility="visible"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            />
+
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/btnRecenterNavigation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="18dp"
+            android:backgroundTint="@color/dark_blue_UI_primary"
+            android:textColor="@color/white"
+            android:visibility="invisible"
+            app:icon="@drawable/ic_navigation"
+            app:iconTint="@color/white"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.cardview.widget.CardView
         android:id="@+id/maneuver_directions_summary_card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:cardCornerRadius="12dp"
         app:cardElevation="8dp"
         android:backgroundTint="#1B1B1B"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -166,34 +222,6 @@
 
     </androidx.cardview.widget.CardView>
 
-    <androidx.appcompat.widget.AppCompatTextView
-        android:id="@+id/navigationRouteSpeedKph"
-        android:layout_width="65dp"
-        android:layout_height="65dp"
-        android:layout_margin="18dp"
-        android:textSize="20dp"
-        android:textColor="@color/white"
-        android:textStyle="bold"
-        android:textAlignment="center"
-        android:text="--    km/h"
-        android:background="@drawable/circle_shape_navigation_speed_kph"
-        android:visibility="visible"
-        app:layout_constraintBottom_toTopOf="@id/maneuver_directions_summary_card"
-        app:layout_constraintRight_toRightOf="parent"
-        />
-
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-        android:id="@+id/btnRecenterNavigation"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="18dp"
-        android:backgroundTint="@color/dark_blue_UI_primary"
-        android:textColor="@color/white"
-        android:visibility="invisible"
-        app:icon="@drawable/ic_navigation"
-        app:iconTint="@color/white"
-        app:layout_constraintBottom_toTopOf="@id/maneuver_directions_summary_card"
-        app:layout_constraintRight_toRightOf="parent"
-        />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

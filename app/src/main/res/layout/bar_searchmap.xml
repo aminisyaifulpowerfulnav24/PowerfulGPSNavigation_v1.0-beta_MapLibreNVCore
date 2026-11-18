@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -9,31 +10,34 @@
     android:focusableInTouchMode="true"
     android:fitsSystemWindows="true">
 
-    <LinearLayout
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/searchbar_map"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent">
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/dark_blue_UI_primary"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_margin="0dp"
         android:orientation="horizontal"
-        android:id="@+id/searchbar_map"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:id="@+id/backToMap"
             android:backgroundTint="@color/dark_blue_UI_primary"
-            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintStart_toEndOf="@id/searchPlaceOnMap"
+            app:layout_constraintEnd_toStartOf="@id/searchPlaceOnMap"
+            app:layout_constraintBottom_toBottomOf="parent"
             android:src="@drawable/baseline_arrow_back_24"
             android:tint="@color/white"
             tools:ignore="UseAppTint" />
@@ -46,9 +50,10 @@
             android:inputType="textPostalAddress"
             android:hint="@string/search_navigate_to"
             android:textColorHint="@color/md_grey_500"
+            app:backgroundTint="@color/dark_blue_UI_primary"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/backToMap"
-            app:layout_constraintEnd_toStartOf="@id/searchOnMapButton"
+            app:layout_constraintEnd_toStartOf="@id/backToMap"
+            app:layout_constraintStart_toEndOf="@id/searchOnMapButton"
             app:layout_constraintTop_toTopOf="parent" />
 
         <Button
@@ -60,9 +65,11 @@
             android:backgroundTint="@color/dark_blue_UI_primary"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toEndOf="@id/searchPlaceOnMap"
-            app:layout_constraintEnd_toEndOf="parent" />
+            />
 
     </LinearLayout>
+
+    </androidx.appcompat.widget.Toolbar>
 
     <ListView
         android:layout_width="match_parent"
@@ -75,7 +82,5 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintStart_toEndOf="parent"
         />
-
-    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

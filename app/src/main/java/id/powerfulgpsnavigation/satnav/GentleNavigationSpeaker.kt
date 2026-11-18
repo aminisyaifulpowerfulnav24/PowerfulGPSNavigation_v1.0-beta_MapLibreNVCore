@@ -8,6 +8,7 @@ import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import java.util.Locale
 
@@ -18,16 +19,14 @@ class GentleNavigationSpeaker(private val context: Context) : TextToSpeech.OnIni
     private var focusRequest: AudioFocusRequest? = null
 
     private val sharedPreferences: SharedPreferences =
-        context.getSharedPreferences("NavigationSettings", Context.MODE_PRIVATE)
+        context.getSharedPreferences("NavigationInstructionsSoundsSettings", Context.MODE_PRIVATE)
 
     private var isMuted = sharedPreferences.getBoolean("is_muted", false)
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            // Coba pasang Bahasa Indonesia
-            var result = tts.setLanguage(Locale("id", "ID"))
+            var result = tts.setLanguage(Locale(context.getString(R.string.navigation_instructions_sounds_language), context.getString(R.string.navigation_instructions_sounds_country)))
 
-            // JIKA HP tidak punya data Bahasa Indonesia, fallback ke Bahasa Default Sistem HP
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 Log.w("TTS", "Bahasa Indonesia tidak didukung/belum diunduh, menggunakan bahasa sistem.")
                 result = tts.setLanguage(Locale.getDefault())
@@ -36,11 +35,37 @@ class GentleNavigationSpeaker(private val context: Context) : TextToSpeech.OnIni
             if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
                 isInitialized = true
                 tts.setSpeechRate(1.05f)
+
+                // Pisahkan atribut audio TTS ke jalur Navigasi agar tidak ikut mengecil bersama musik
+                val navAudioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+                tts.setAudioAttributes(navAudioAttributes)
+
+                setupUtteranceListener()
                 Log.d("TTS", "TextToSpeech Sukses Diinisialisasi!")
             }
         } else {
             Log.e("TTS", "Gagal inisialisasi TextToSpeech. Status: $status")
         }
+    }
+
+    private fun setupUtteranceListener() {
+        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+                Log.d("TTS", "Mulai berbicara...")
+            }
+
+            override fun onDone(utteranceId: String?) {
+                restoreAudioAndFocus()
+            }
+
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                restoreAudioAndFocus()
+            }
+        })
     }
 
     fun playGentle(text: String) {
@@ -54,30 +79,44 @@ class GentleNavigationSpeaker(private val context: Context) : TextToSpeech.OnIni
             return
         }
 
-        requestAudioFocus()
+        // 1. Minta fokus audio dan turunkan volume musik ke 20% sebelum suara dimulai
+        requestAudioFocusAndDuckMusic()
 
         val utteranceId = "MapLibre_${System.currentTimeMillis()}"
 
-        // SOLUSI: Bungkus parameter audio ke dalam Bundle agar dipaksa keluar ke speaker media
+        // 2. Pastikan suara TTS diputar pada volume maksimal (1.0f) dan gunakan STREAM_NOTIFICATION/ALARM
         val ttsParams = Bundle().apply {
+            putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.32f)
             putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC)
         }
 
-        // Jalankan pemutar suara dengan Bundle parameter yang valid
+        // 3. Jalankan suara navigasi
         tts.speak(text, TextToSpeech.QUEUE_ADD, ttsParams, utteranceId)
+    }
 
-        tts.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) {
-                Log.d("TTS", "Mulai berbicara: $text")
-            }
-            override fun onDone(utteranceId: String?) {
-                abandonAudioFocus()
-            }
-            @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) {
-                abandonAudioFocus()
-            }
-        })
+    private fun requestAudioFocusAndDuckMusic() {
+        // Minta Audio Focus terlebih dahulu
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
+                .build()
+            focusRequest?.let { audioManager.requestAudioFocus(it) }
+        }
+    }
+
+    private fun restoreAudioAndFocus() {
+        // Lepaskan Audio Focus
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            focusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.abandonAudioFocus(null)
+        }
     }
 
     fun toggleMute(): Boolean {
@@ -93,37 +132,12 @@ class GentleNavigationSpeaker(private val context: Context) : TextToSpeech.OnIni
 
     fun stopAll() {
         tts.stop()
-        abandonAudioFocus()
-    }
-
-    private fun requestAudioFocus() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                        .build()
-                )
-                .build()
-            focusRequest?.let { audioManager.requestAudioFocus(it) }
-        } else {
-            @Suppress("DEPRECATION")
-            audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-        }
-    }
-
-    private fun abandonAudioFocus() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            focusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
-        } else {
-            @Suppress("DEPRECATION")
-            audioManager.abandonAudioFocus(null)
-        }
+        restoreAudioAndFocus()
     }
 
     fun shutdown() {
         tts.stop()
+        restoreAudioAndFocus()
         tts.shutdown()
     }
 }
