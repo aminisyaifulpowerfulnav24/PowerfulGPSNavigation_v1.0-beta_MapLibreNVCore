@@ -146,7 +146,7 @@
         android:focusableInTouchMode="true">
 
         <androidx.appcompat.widget.LinearLayoutCompat
-            android:id="@+id/maneuver_directions_summary_card_ui"
+            android:id="@+id/directions_summary_card_ui"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
